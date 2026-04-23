@@ -75,13 +75,7 @@ while True:
         face_landmarks = results.multi_face_landmarks[0]
         landmarks = face_landmarks.landmark
 
-        # Bounding box
-        x_min = int(min([lm.x for lm in landmarks]) * w)
-        y_min = int(min([lm.y for lm in landmarks]) * h)
-        x_max = int(max([lm.x for lm in landmarks]) * w)
-        y_max = int(max([lm.y for lm in landmarks]) * h)
-
-        cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (255, 0, 0), 2)
+        # No face bounding box - too distracting for driver
 
         # Eye points
         left_eye = get_eye_points(landmarks, LEFT_EYE, w, h)
@@ -99,17 +93,18 @@ while True:
 
         smooth_ear = sum(ear_history) / len(ear_history)
 
-        # Draw clean eye contours (white)
-        cv2.polylines(frame, [np.array(left_eye)], True, (255, 255, 255), 1)
-        cv2.polylines(frame, [np.array(right_eye)], True, (255, 255, 255), 1)
+        # Draw subtle eye contours (thin, dim green - less distracting)
+        cv2.polylines(frame, [np.array(left_eye)], True, (0, 255, 0), 1)
+        cv2.polylines(frame, [np.array(right_eye)], True, (0, 255, 0), 1)
 
-        # Display EAR
-        cv2.putText(frame, f"EAR: {smooth_ear:.2f}", (20, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        # Small, dim EAR display in corner
+        cv2.putText(frame, f"EAR: {smooth_ear:.2f}", (10, h-20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
     else:
-        cv2.putText(frame, "No face detected", (20, 60),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        # Subtle "No face detected" message in corner
+        cv2.putText(frame, "No face", (10, h-20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
     cv2.imshow("Drowsiness Detection - Vision Module", frame)
 
