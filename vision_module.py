@@ -3,7 +3,7 @@ import mediapipe as mp
 import numpy as np
 from scipy.spatial import distance
 import time
-
+import winsound
 
 # MediaPipe setup
 mp_face_mesh = mp.solutions.face_mesh
@@ -56,11 +56,19 @@ def compute_ear_from_frame(frame):
     return ear, left_eye, right_eye
 
 
+# Drowsiness detection parameters
+EAR_THRESHOLD = 0.20  # Below this = drowsy (lowered to reduce false positives)
+DROWSY_FRAMES_THRESHOLD = 20  # Consecutive frames to trigger alert (increased)
+ALERT_COOLDOWN = 5  # Seconds between alerts (increased)
+
 # Webcam
 cap = cv2.VideoCapture(0)
 
 ear_history = []
 prev_time = 0
+drowsy_frame_count = 0
+last_alert_time = 0
+alert_active = False
 
 while True:
     ret, frame = cap.read()
@@ -87,13 +95,66 @@ while True:
         cv2.polylines(frame, [np.array(left_eye)], True, (0, 255, 0), 1)
         cv2.polylines(frame, [np.array(right_eye)], True, (0, 255, 0), 1)
 
-        # Display EAR
-        cv2.putText(frame, f"EAR: {smooth_ear:.2f}", (10, 460),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+        # Display EAR with threshold info
+        color = (0, 255, 0) if smooth_ear >= EAR_THRESHOLD else (0, 0, 255)
+        cv2.putText(frame, f"EAR: {smooth_ear:.2f} (Thresh: {EAR_THRESHOLD})", (10, 460),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+        
+        # Show drowsy frame count for debugging
+        if drowsy_frame_count > 0:
+            cv2.putText(frame, f"Drowsy frames: {drowsy_frame_count}/{DROWSY_FRAMES_THRESHOLD}", (10, 440),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0), 1)
+
+        # Drowsiness detection logic
+        if smooth_ear < EAR_THRESHOLD:
+            drowsy_frame_count += 1
+            
+            # Visual warning when approaching threshold
+            if drowsy_frame_count > 5:
+                cv2.putText(frame, "WARNING: DROWSY!", (200, 50),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                
+                # Flash red border
+                if int(time.time() * 2) % 2 == 0:  # Flash every 0.5 seconds
+                    cv2.rectangle(frame, (5, 5), (635, 475), (0, 0, 255), 5)
+            
+            # Trigger alert if threshold exceeded
+            if drowsy_frame_count >= DROWSY_FRAMES_THRESHOLD:
+                current_time = time.time()
+                if current_time - last_alert_time > ALERT_COOLDOWN:
+                    alert_active = True
+                    last_alert_time = current_time
+                    
+                    # Audio alert - multiple beeps for attention
+                    try:
+                        # Play 3 beeps in sequence
+                        for _ in range(3):
+                            winsound.Beep(1000, 200)  # 1000Hz for 200ms
+                            time.sleep(0.1)  # Small gap between beeps
+                    except:
+                        # Fallback to system beep if winsound fails
+                        for _ in range(3):
+                            print('\a')
+                            time.sleep(0.1)
+                    
+                    # Visual alert
+                    cv2.putText(frame, "ALERT: WAKE UP!", (150, 100),
+                               cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
+        else:
+            # Reset counter when eyes are open
+            if drowsy_frame_count > 0:
+                drowsy_frame_count = max(0, drowsy_frame_count - 2)  # Gradual reset
+            
+            # Show status
+            if drowsy_frame_count > 0:
+                cv2.putText(frame, f"Recovering... ({drowsy_frame_count})", (200, 50),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 165, 0), 2)
 
     else:
         cv2.putText(frame, "No face", (10, 460),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+        # Reset drowsy counter when no face detected
+        drowsy_frame_count = 0
 
     # FPS calculation
     curr_time = time.time()
