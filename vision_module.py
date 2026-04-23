@@ -2,6 +2,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from scipy.spatial import distance
+import time
 
 
 # MediaPipe setup
@@ -40,7 +41,7 @@ def compute_ear_from_frame(frame):
     results = face_mesh.process(rgb)
 
     if not results.multi_face_landmarks:
-        return None
+        return None, None, None
 
     face_landmarks = results.multi_face_landmarks[0]
     landmarks = face_landmarks.landmark
@@ -50,41 +51,30 @@ def compute_ear_from_frame(frame):
 
     leftEAR = EAR(left_eye)
     rightEAR = EAR(right_eye)
+    ear = (leftEAR + rightEAR) / 2.0
 
-    return (leftEAR + rightEAR) / 2.0
+    return ear, left_eye, right_eye
 
 
 # Webcam
 cap = cv2.VideoCapture(0)
 
 ear_history = []
+prev_time = 0
 
 while True:
     ret, frame = cap.read()
     if not ret:
         break
 
-    h, w, _ = frame.shape
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    # Resize + flip (better UX + performance)
+    frame = cv2.resize(frame, (640, 480))
+    frame = cv2.flip(frame, 1)
 
-    results = face_mesh.process(rgb)
+    # Get EAR + eye points
+    ear, left_eye, right_eye = compute_ear_from_frame(frame)
 
-    if results.multi_face_landmarks:
-
-        # Use only first face
-        face_landmarks = results.multi_face_landmarks[0]
-        landmarks = face_landmarks.landmark
-
-        # No face bounding box - too distracting for driver
-
-        # Eye points
-        left_eye = get_eye_points(landmarks, LEFT_EYE, w, h)
-        right_eye = get_eye_points(landmarks, RIGHT_EYE, w, h)
-
-        # EAR
-        leftEAR = EAR(left_eye)
-        rightEAR = EAR(right_eye)
-        ear = (leftEAR + rightEAR) / 2.0
+    if ear is not None:
 
         # Smooth EAR
         ear_history.append(ear)
@@ -93,18 +83,25 @@ while True:
 
         smooth_ear = sum(ear_history) / len(ear_history)
 
-        # Draw subtle eye contours (thin, dim green - less distracting)
+        # Draw eye contours
         cv2.polylines(frame, [np.array(left_eye)], True, (0, 255, 0), 1)
         cv2.polylines(frame, [np.array(right_eye)], True, (0, 255, 0), 1)
 
-        # Small, dim EAR display in corner
-        cv2.putText(frame, f"EAR: {smooth_ear:.2f}", (10, h-20),
+        # Display EAR
+        cv2.putText(frame, f"EAR: {smooth_ear:.2f}", (10, 460),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
     else:
-        # Subtle "No face detected" message in corner
-        cv2.putText(frame, "No face", (10, h-20),
+        cv2.putText(frame, "No face", (10, 460),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+
+    # FPS calculation
+    curr_time = time.time()
+    fps = 1 / (curr_time - prev_time) if prev_time != 0 else 0
+    prev_time = curr_time
+
+    cv2.putText(frame, f"FPS: {int(fps)}", (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
 
     cv2.imshow("Drowsiness Detection - Vision Module", frame)
 
