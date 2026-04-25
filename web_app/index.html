@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Safety - Drowsiness Detection</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Consent Popup (shown on first visit) -->
+    <div id="consentPopup" class="consent-popup">
+        <div class="consent-content">
+            <div class="consent-icon">👁️</div>
+            <h2>Camera Consent Required</h2>
+            <p>This app uses your camera for driver monitoring and drowsiness detection. Your privacy is important - all processing happens locally on your device.</p>
+            <div class="consent-buttons">
+                <button id="acceptConsent" class="btn-primary">Accept</button>
+                <button id="declineConsent" class="btn-secondary">Decline</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">🚗</div>
+                    <h1>Driver Safety</h1>
+                </div>
+                <div class="status-indicator" id="systemStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">System Idle</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Home Screen / Dashboard -->
+            <div id="homeScreen" class="screen active">
+                <div class="dashboard-content">
+                    <div class="welcome-section">
+                        <h2>Welcome Back</h2>
+                        <p>Stay safe on the road with real-time drowsiness detection</p>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button id="startMonitoring" class="btn-primary btn-large">
+                            <span class="btn-icon">▶️</span>
+                            Start Monitoring
+                        </button>
+                        
+                        <button id="viewProfile" class="btn-secondary btn-large">
+                            <span class="btn-icon">👤</span>
+                            View Profile
+                        </button>
+                        
+                        <button id="openSettings" class="btn-secondary btn-large">
+                            <span class="btn-icon">⚙️</span>
+                            Settings
+                        </button>
+                        
+                        <button id="viewHistory" class="btn-secondary btn-large">
+                            <span class="btn-icon">📊</span>
+                            History / Reports
+                        </button>
+                    </div>
+
+                    <div class="quick-stats">
+                        <div class="stat-card">
+                            <div class="stat-value">0</div>
+                            <div class="stat-label">Sessions Today</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">0h</div>
+                            <div class="stat-label">Total Time</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">0</div>
+                            <div class="stat-label">Alerts Triggered</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monitoring Screen -->
+            <div id="monitoringScreen" class="screen">
+                <div class="monitoring-content">
+                    <div class="camera-container">
+                        <video id="cameraFeed" class="camera-feed" autoplay muted></video>
+                        <canvas id="overlayCanvas" class="overlay-canvas"></canvas>
+                        
+                        <div class="monitoring-overlay">
+                            <div class="ear-display">
+                                <span class="ear-label">EAR Value:</span>
+                                <span id="earValue" class="ear-value">--</span>
+                            </div>
+                            
+                            <div class="alert-status" id="alertStatus">
+                                <span class="status-indicator-monitoring"></span>
+                                <span class="status-text-monitoring">Monitoring</span>
+                            </div>
+                            
+                            <div class="performance-info">
+                                <span id="fpsCounter">FPS: 0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="monitoring-controls">
+                        <button id="toggleCamera" class="btn-primary btn-large">
+                            <span class="btn-icon">📹</span>
+                            Start Camera
+                        </button>
+                        
+                        <button id="stopMonitoring" class="btn-danger btn-large">
+                            <span class="btn-icon">⏹️</span>
+                            Stop Monitoring
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Screen -->
+            <div id="profileScreen" class="screen">
+                <div class="profile-content">
+                    <div class="profile-header">
+                        <div class="profile-avatar">
+                            <span class="avatar-icon">👤</span>
+                        </div>
+                        <div class="profile-info">
+                            <h2>Driver Profile</h2>
+                            <p id="userId">ID: DRV-001</p>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-stats">
+                        <div class="stat-item">
+                            <label>Baseline EAR:</label>
+                            <span id="baselineEAR">0.25</span>
+                        </div>
+                        <div class="stat-item">
+                            <label>Total Sessions:</label>
+                            <span id="totalSessions">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <label>Average Session:</label>
+                            <span id="avgSession">0 min</span>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-actions">
+                        <button id="calibrateBaseline" class="btn-secondary">
+                            <span class="btn-icon">🎯</span>
+                            Calibrate Baseline
+                        </button>
+                        
+                        <button id="resetProfile" class="btn-danger">
+                            <span class="btn-icon">🔄</span>
+                            Reset Profile
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Screen -->
+            <div id="settingsScreen" class="screen">
+                <div class="settings-content">
+                    <h2>Settings</h2>
+                    
+                    <div class="settings-section">
+                        <h3>Alert Preferences</h3>
+                        
+                        <div class="setting-item">
+                            <label class="toggle-label">
+                                <span>Enable Alerts</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="enableAlerts" checked>
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label class="toggle-label">
+                                <span>Sound Alerts</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="soundAlerts" checked>
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label class="toggle-label">
+                                <span>Vibration Alerts</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="vibrationAlerts">
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>Sensitivity</h3>
+                        
+                        <div class="sensitivity-options">
+                            <label class="radio-option">
+                                <input type="radio" name="sensitivity" value="low">
+                                <span class="radio-label">Low</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="sensitivity" value="medium" checked>
+                                <span class="radio-label">Medium</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="sensitivity" value="high">
+                                <span class="radio-label">High</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>Data & Privacy</h3>
+                        
+                        <div class="setting-item">
+                            <label class="toggle-label">
+                                <span>Save Session History</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="saveHistory" checked>
+                                    <span class="toggle-slider"></span>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <button id="clearData" class="btn-danger">
+                            <span class="btn-icon">🗑️</span>
+                            Clear All Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Screen -->
+            <div id="historyScreen" class="screen">
+                <div class="history-content">
+                    <h2>Session History</h2>
+                    
+                    <div class="history-summary">
+                        <div class="summary-card">
+                            <div class="summary-value">0</div>
+                            <div class="summary-label">Total Sessions</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-value">0h</div>
+                            <div class="summary-label">Total Time</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-value">0</div>
+                            <div class="summary-label">Alerts</div>
+                        </div>
+                    </div>
+                    
+                    <div class="history-list">
+                        <div class="history-empty">
+                            <span class="empty-icon">📊</span>
+                            <p>No sessions recorded yet</p>
+                            <small>Start monitoring to see your history</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-screen="homeScreen">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Home</span>
+            </button>
+            <button class="nav-item" data-screen="monitoringScreen">
+                <span class="nav-icon">👁️</span>
+                <span class="nav-label">Monitor</span>
+            </button>
+            <button class="nav-item" data-screen="profileScreen">
+                <span class="nav-icon">👤</span>
+                <span class="nav-label">Profile</span>
+            </button>
+            <button class="nav-item" data-screen="historyScreen">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">History</span>
+            </button>
+            <button class="nav-item" data-screen="settingsScreen">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Settings</span>
+            </button>
+        </nav>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

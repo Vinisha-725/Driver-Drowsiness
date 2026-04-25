@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Safety App - Demo</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0f;
+            color: white;
+            margin: 0;
+            padding: 2rem;
+            text-align: center;
+        }
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .demo-description {
+            color: #b8b8d1;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .feature {
+            background: #1a1a2e;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #00ff88;
+        }
+        .feature-desc {
+            color: #b8b8d1;
+            font-size: 0.9rem;
+        }
+        .demo-button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #00ff88, #00d4ff);
+            color: #0a0a0f;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 1rem;
+        }
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(0, 255, 136, 0.4);
+        }
+        .phone-preview {
+            width: 300px;
+            height: 600px;
+            background: #1a1a2e;
+            border: 2px solid #00ff88;
+            border-radius: 30px;
+            margin: 2rem auto;
+            padding: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #0a0a0f;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #00ff88;
+        }
+        .tech-stack {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #1a1a2e;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+        .tech-stack h3 {
+            color: #00ff88;
+            margin-bottom: 1rem;
+        }
+        .tech-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        .tech-item {
+            background: #0f3460;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🚗 Driver Safety App</h1>
+        <p class="demo-description">
+            A modern, minimal web application for driver drowsiness detection with real-time monitoring, 
+            progressive alerts, and comprehensive session tracking.
+        </p>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">👁️</div>
+                <div class="feature-title">Real-time Monitoring</div>
+                <div class="feature-desc">Live camera feed with EAR tracking and visual overlays</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⚠️</div>
+                <div class="feature-title">Smart Alerts</div>
+                <div class="feature-desc">Progressive warnings with audio, visual, and vibration alerts</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">Session History</div>
+                <div class="feature-desc">Track driving sessions, alerts, and performance metrics</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⚙️</div>
+                <div class="feature-title">Customizable Settings</div>
+                <div class="feature-desc">Adjust sensitivity, alerts, and personal preferences</div>
+            </div>
+        </div>
+
+        <div class="phone-preview">
+            <div class="phone-screen">
+                <div>📱 Mobile Preview</div>
+                <div style="font-size: 0.6rem; margin-top: 1rem;">Dark Theme • Neon Accents • Responsive Design</div>
+            </div>
+        </div>
+
+        <a href="index.html" class="demo-button">🚀 Launch App</a>
+        <a href="#features" class="demo-button">📋 View Features</a>
+
+        <div class="tech-stack">
+            <h3>🛠️ Technology Stack</h3>
+            <div class="tech-list">
+                <span class="tech-item">HTML5</span>
+                <span class="tech-item">CSS3</span>
+                <span class="tech-item">JavaScript ES6+</span>
+                <span class="tech-item">WebRTC</span>
+                <span class="tech-item">Web Audio API</span>
+                <span class="tech-item">LocalStorage</span>
+                <span class="tech-item">MediaPipe Integration</span>
+                <span class="tech-item">Responsive Design</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem; padding: 1rem; background: #1a1a2e; border-radius: 12px; border: 1px solid rgba(0, 255, 136, 0.2);">
+            <h3 style="color: #00ff88; margin-bottom: 1rem;">🎯 Key Features</h3>
+            <ul style="text-align: left; max-width: 500px; margin: 0 auto; color: #b8b8d1; line-height: 1.8;">
+                <li>🌙 Dark theme with neon green/blue accents</li>
+                <li>📱 Mobile-first responsive design</li>
+                <li>🔐 Privacy-first with local data storage</li>
+                <li>⚡ Real-time performance monitoring</li>
+                <li>🎨 Smooth animations and transitions</li>
+                <li>🔊 Multi-modal alert system</li>
+                <li>📈 Comprehensive analytics dashboard</li>
+                <li>⚙️ Customizable sensitivity settings</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

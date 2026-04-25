@@ -167,23 +167,11 @@ C = distance between eye landmarks 0-3
 - [ ] Cloud logging system
 - [ ] Machine learning model training
 
-## 📄 License
-
-This project is open source and available under the MIT License.
-
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create feature branch
 3. Submit pull request
 4. Follow coding standards
-
-## 📞 Support
-
-For issues and support:
-- GitHub Issues: [Repository Issues](https://github.com/Vinisha-725/Driver-Drowsiness/issues)
-- Documentation: [README Updates](https://github.com/Vinisha-725/Driver-Drowsiness/blob/main/README.md)
-
----
 
 **⚠️ Safety Notice**: This system is designed to assist drivers but should not replace responsible driving practices. Always prioritize safety and take regular breaks when needed.
