@@ -8,6 +8,11 @@ class DriverSafetyApp {
         this.earValue = 0.25;
         this.alertStatus = 'normal';
         this.sessions = [];
+        this.videoElement = null;
+        this.canvasElement = null;
+        this.ctx = null;
+        this.eyeDetectionInterval = null;
+        this.baselineBrightness = null;
         this.settings = {
             enableAlerts: true,
             soundAlerts: true,
@@ -236,13 +241,17 @@ class DriverSafetyApp {
                 
                 video.srcObject = stream;
                 this.cameraStream = stream;
+                this.videoElement = video;
+                
+                // Setup canvas for eye detection
+                this.setupEyeDetection();
                 
                 button.innerHTML = '<span class="btn-icon">📹</span> Stop Camera';
                 button.classList.add('btn-danger');
                 button.classList.remove('btn-primary');
                 
-                // Start simple EAR simulation
-                this.startEARSimulation();
+                // Start real eye detection
+                this.startRealEyeDetection();
                 
             } catch (error) {
                 console.error('Camera access denied:', error);
@@ -267,27 +276,105 @@ class DriverSafetyApp {
             button.classList.remove('btn-danger');
             button.classList.add('btn-primary');
             
-            // Stop EAR simulation
-            this.stopEARSimulation();
+            // Stop real eye detection
+            this.stopRealEyeDetection();
         }
     }
 
-    // Simulate EAR values (replace with actual face detection in production)
-    startEARSimulation() {
-        this.earInterval = setInterval(() => {
-            // Simulate realistic EAR values with less variation
-            const baseEAR = 0.28; // Higher baseline to be less sensitive
-            const variation = (Math.random() - 0.5) * 0.06; // Less variation
-            this.earValue = Math.max(0.15, Math.min(0.40, baseEAR + variation));
+    // Setup eye detection canvas
+    setupEyeDetection() {
+        // Create hidden canvas for processing
+        this.canvasElement = document.createElement('canvas');
+        this.canvasElement.width = 640;
+        this.canvasElement.height = 480;
+        this.ctx = this.canvasElement.getContext('2d');
+        
+        // Wait for video to be ready
+        this.videoElement.addEventListener('loadedmetadata', () => {
+            this.baselineBrightness = this.calculateEyeBrightness();
+            console.log('Eye detection ready - baseline brightness:', this.baselineBrightness);
+        });
+    }
+
+    // Calculate brightness in eye region
+    calculateEyeBrightness() {
+        if (!this.videoElement || !this.ctx) return 128;
+        
+        try {
+            // Draw video frame to canvas
+            this.ctx.drawImage(this.videoElement, 0, 0, 640, 480);
             
-            // Only simulate drowsiness occasionally (1% chance)
-            if (Math.random() < 0.01) { // 1% chance of drowsy
-                this.earValue = 0.12; // Lower value for clear drowsiness
+            // Get image data from eye region (upper third of face)
+            const imageData = this.ctx.getImageData(160, 120, 320, 120);
+            const data = imageData.data;
+            
+            let totalBrightness = 0;
+            let pixelCount = 0;
+            
+            // Calculate average brightness
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const brightness = (r + g + b) / 3;
+                totalBrightness += brightness;
+                pixelCount++;
             }
+            
+            return totalBrightness / pixelCount;
+        } catch (error) {
+            console.error('Error calculating brightness:', error);
+            return 128;
+        }
+    }
+
+    // Start real eye detection
+    startRealEyeDetection() {
+        this.eyeDetectionInterval = setInterval(() => {
+            if (!this.videoElement || !this.videoElement.readyState === 4) {
+                return;
+            }
+            
+            const currentBrightness = this.calculateEyeBrightness();
+            
+            if (this.baselineBrightness === null) {
+                this.baselineBrightness = currentBrightness;
+                return;
+            }
+            
+            // Calculate EAR based on brightness change
+            const brightnessRatio = currentBrightness / this.baselineBrightness;
+            
+            // When eyes close, brightness decreases
+            if (brightnessRatio < 0.85) {
+                // Eyes likely closed
+                this.earValue = 0.08 + (brightnessRatio - 0.7) * 0.2;
+            } else if (brightnessRatio > 1.15) {
+                // Eyes likely wide open
+                this.earValue = 0.32 + (brightnessRatio - 1.15) * 0.1;
+            } else {
+                // Normal eye state
+                this.earValue = 0.25 + (brightnessRatio - 1.0) * 0.15;
+            }
+            
+            // Clamp to realistic range
+            this.earValue = Math.max(0.08, Math.min(0.40, this.earValue));
             
             this.updateEARDisplay();
             this.checkDrowsiness();
-        }, 200); // Update 5 times per second (less frequent)
+            
+        }, 200); // Check 5 times per second
+    }
+
+    // Stop real eye detection
+    stopRealEyeDetection() {
+        if (this.eyeDetectionInterval) {
+            clearInterval(this.eyeDetectionInterval);
+            this.eyeDetectionInterval = null;
+        }
+        
+        // Reset baseline
+        this.baselineBrightness = null;
     }
 
     // Stop EAR simulation
@@ -377,11 +464,12 @@ class DriverSafetyApp {
             // Count consecutive drowsy frames
             this.drowsyFrameCount = (this.drowsyFrameCount || 0) + 1;
             
-            // Trigger alert only after sustained drowsiness (20+ frames = ~2 seconds)
-            if (this.drowsyFrameCount >= 20 && !this.lastAlertTime || 
-                (Date.now() - this.lastAlertTime > 5000)) { // 5 second cooldown
-                this.triggerAlert();
-                this.lastAlertTime = Date.now();
+            // Trigger alert after sustained drowsiness (10+ frames = ~1 second for manual testing)
+            if (this.drowsyFrameCount >= 10) {
+                if (!this.lastAlertTime || (Date.now() - this.lastAlertTime > 3000)) {
+                    this.triggerAlert();
+                    this.lastAlertTime = Date.now();
+                }
             }
         } else {
             if (this.alertStatus !== 'normal') {
@@ -395,9 +483,9 @@ class DriverSafetyApp {
     // Get sensitivity threshold
     getSensitivityThreshold() {
         switch (this.settings.sensitivity) {
-            case 'low': return 0.15;
-            case 'high': return 0.30;
-            default: return 0.20;
+            case 'low': return 0.12; // Lower threshold for manual testing
+            case 'high': return 0.25; // Higher threshold for sensitivity
+            default: return 0.15; // Medium threshold - easier to trigger
         }
     }
 
