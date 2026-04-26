@@ -64,13 +64,13 @@ def camera_thread():
                 if drowsy_frame_count >= DROWSY_FRAMES_THRESHOLD:
                     current_time = time.time()
                     
-                    # Check cooldown period
+                    # Continuous alert - trigger every cooldown period while EAR is low
                     if current_time - last_alert_time >= ALERT_COOLDOWN:
                         alert_triggered = True
                         last_alert_time = current_time
-                        print("🚨 DROWSINESS ALERT! Driver appears to be asleep!")
+                        print("🚨 CONTINUOUS DROWSINESS ALERT! Driver appears to be asleep!")
                     else:
-                        alert_triggered = False
+                        alert_triggered = True  # Keep alert state active between beeps
                 else:
                     alert_triggered = False
             else:

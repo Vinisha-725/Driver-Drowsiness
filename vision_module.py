@@ -64,7 +64,7 @@ def compute_ear_from_frame(frame):
 # Drowsiness detection parameters
 EAR_THRESHOLD = 0.20  # Below this = drowsy (lowered to reduce false positives)
 DROWSY_FRAMES_THRESHOLD = 20  # Consecutive frames to trigger alert (increased)
-ALERT_COOLDOWN = 5  # Seconds between alerts (increased)
+ALERT_COOLDOWN = 1  # Seconds between continuous alerts (reduced for continuous beeping)
 
 # Standalone function for testing the module
 def run_standalone():

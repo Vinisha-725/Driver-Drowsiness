@@ -125,11 +125,16 @@ const AlertSystem = ({
       
       setDrowsyFrameCount(prev => prev + 1)
       
-      // Very low EAR - loud alert
+      // Very low EAR - continuous loud alert
       if (earValue < threshold * 0.6) { // 60% of threshold
-        if (alertStatus !== 'alert' && now - lastAlertTimeRef.current > 2000) {
+        // Continuous alert - keep beeping until EAR is normal
+        if (alertStatus !== 'alert') {
           setAlertStatus('alert')
           stopWarningBeeps()
+        }
+        
+        // Play loud alert every 1 second while EAR is low
+        if (now - lastAlertTimeRef.current > 1000) {
           playLoudAlert()
           triggerVibration()
           setAlertCount(prev => prev + 1)

@@ -14,7 +14,9 @@ const CameraFeed = ({ isDetecting, fps, cameraFrame }) => {
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-6xl mb-4">📹</div>
+              <div className="w-16 h-16 mx-auto mb-4 border-2 border-gray-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-gray-600 rounded-full"></div>
+              </div>
               <p className="text-gray-400">
                 {isDetecting ? 'Waiting for camera feed...' : 'Click "Start Camera" to begin'}
               </p>
