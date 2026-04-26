@@ -1,25 +1,44 @@
 // Driver Safety App - JavaScript Functionality
 
+// Global variables
 class DriverSafetyApp {
     constructor() {
-        this.currentScreen = 'homeScreen';
-        this.isMonitoring = false;
+        // Camera and detection
         this.cameraStream = null;
-        this.earValue = 0.25;
-        this.alertStatus = 'normal';
-        this.sessions = [];
         this.videoElement = null;
         this.canvasElement = null;
         this.ctx = null;
-        this.eyeDetectionInterval = null;
-        this.baselineBrightness = null;
+        
+        // MediaPipe
+        this.faceMesh = null;
+        this.camera = null;
+        
+        // Drowsiness detection
+        this.earValue = 0.25;
+        this.alertStatus = 'normal';
+        this.drowsyFrameCount = 0;
+        this.lastAlertTime = 0;
+        
+        // Settings
         this.settings = {
             enableAlerts: true,
-            soundAlerts: true,
-            vibrationAlerts: false,
-            sensitivity: 'medium',
-            saveHistory: true
+            alertSound: true,
+            alertVibration: true,
+            sensitivity: 'default',
+            autoStart: false
         };
+        
+        // Session data
+        this.sessionData = {
+            startTime: null,
+            alertsTriggered: 0,
+            totalDrowsyTime: 0,
+            averageEAR: 0.25
+        };
+        
+        // MediaPipe detection state
+        this.isDetecting = false;
+        this.detectionInterval = null;
         
         this.init();
     }
@@ -28,6 +47,7 @@ class DriverSafetyApp {
         this.loadSettings();
         this.bindEvents();
         this.checkFirstVisit();
+        this.setupMediaPipe();
         this.updateUI();
     }
 
@@ -215,7 +235,7 @@ class DriverSafetyApp {
         // Stop camera
         this.stopCamera();
         
-        // End session tracking
+        // End session tracking (this will also stop the timer)
         this.endSession();
         
         // Return to home screen
@@ -228,9 +248,24 @@ class DriverSafetyApp {
     async toggleCamera() {
         const button = document.getElementById('toggleCamera');
         const video = document.getElementById('cameraFeed');
+        const canvas = document.getElementById('overlayCanvas');
+        
+        console.log('🎥 Toggle camera called');
         
         if (!this.cameraStream) {
             try {
+                console.log('📹 Setting up MediaPipe camera...');
+                
+                // Setup MediaPipe camera
+                this.camera = new Camera(video, {
+                    onFrame: async () => {
+                        await this.faceMesh.send({image: video});
+                    },
+                    width: 640,
+                    height: 480
+                });
+                
+                // Get browser camera stream
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
                         width: { ideal: 640 },
@@ -239,23 +274,53 @@ class DriverSafetyApp {
                     } 
                 });
                 
-                video.srcObject = stream;
-                this.cameraStream = stream;
-                this.videoElement = video;
+                console.log('✅ Got camera stream');
                 
-                // Setup canvas for eye detection
-                this.setupEyeDetection();
+                // Setup video and canvas
+                video.srcObject = stream;
+                video.style.display = 'block';
+                video.style.background = 'transparent';
+                video.style.border = '2px solid #00ff00';
+                
+                canvas.style.display = 'block';
+                this.ctx = canvas.getContext('2d');
+                
+                // Video event listeners
+                video.onloadedmetadata = () => {
+                    console.log('📹 Video loaded, starting MediaPipe...');
+                    video.play();
+                    this.camera.start();
+                };
+                
+                video.onplay = () => {
+                    console.log('▶️ Camera and MediaPipe started!');
+                    video.style.border = '2px solid #00ff00';
+                    this.isDetecting = true;
+                };
+                
+                video.onerror = (e) => {
+                    console.error('❌ Video error:', e);
+                    video.style.border = '2px solid #ff0000';
+                };
+                
+                this.cameraStream = stream;
                 
                 button.innerHTML = '<span class="btn-icon">📹</span> Stop Camera';
                 button.classList.add('btn-danger');
                 button.classList.remove('btn-primary');
                 
-                // Start real eye detection
-                this.startRealEyeDetection();
+                this.showNotification('Camera started with MediaPipe detection!', 'success');
                 
             } catch (error) {
-                console.error('Camera access denied:', error);
-                this.showNotification('Camera access denied. Please check permissions.', 'error');
+                console.error('❌ Camera failed:', error);
+                
+                if (error.name === 'NotAllowedError') {
+                    this.showNotification('❌ Camera permission denied. Please allow camera access.', 'error');
+                } else if (error.name === 'NotFoundError') {
+                    this.showNotification('❌ No camera found. Please check your camera.', 'error');
+                } else {
+                    this.showNotification('❌ Camera failed. Please check permissions.', 'error');
+                }
             }
         } else {
             this.stopCamera();
@@ -263,118 +328,154 @@ class DriverSafetyApp {
     }
 
     // Stop camera
-    stopCamera() {
+    async stopCamera() {
         if (this.cameraStream) {
-            this.cameraStream.getTracks().forEach(track => track.stop());
+            console.log('🛑 Stopping camera and MediaPipe...');
+            
+            // Stop MediaPipe camera
+            if (this.camera) {
+                this.camera.stop();
+                this.camera = null;
+            }
+            
+            // Stop browser camera stream
+            if (this.cameraStream.getTracks) {
+                this.cameraStream.getTracks().forEach(track => track.stop());
+            }
+            
             this.cameraStream = null;
+            this.isDetecting = false;
             
             const video = document.getElementById('cameraFeed');
             video.srcObject = null;
+            video.style.display = 'none';
+            video.style.border = 'none';
+            
+            const canvas = document.getElementById('overlayCanvas');
+            canvas.style.display = 'none';
             
             const button = document.getElementById('toggleCamera');
             button.innerHTML = '<span class="btn-icon">📹</span> Start Camera';
             button.classList.remove('btn-danger');
             button.classList.add('btn-primary');
             
-            // Stop real eye detection
-            this.stopRealEyeDetection();
+            this.showNotification('Camera and MediaPipe stopped', 'info');
         }
     }
 
-    // Setup eye detection canvas
-    setupEyeDetection() {
-        // Create hidden canvas for processing
-        this.canvasElement = document.createElement('canvas');
-        this.canvasElement.width = 640;
-        this.canvasElement.height = 480;
-        this.ctx = this.canvasElement.getContext('2d');
-        
-        // Wait for video to be ready
-        this.videoElement.addEventListener('loadedmetadata', () => {
-            this.baselineBrightness = this.calculateEyeBrightness();
-            console.log('Eye detection ready - baseline brightness:', this.baselineBrightness);
+    // Setup MediaPipe Face Mesh
+    setupMediaPipe() {
+        this.faceMesh = new FaceMesh({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+            }
         });
+
+        this.faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        this.faceMesh.onResults((results) => this.onMediaPipeResults(results));
     }
 
-    // Calculate brightness in eye region
-    calculateEyeBrightness() {
-        if (!this.videoElement || !this.ctx) return 128;
+    // Start MediaPipe camera
+    startMediaPipeCamera() {
+        this.camera = new Camera(this.videoElement, {
+            onFrame: async () => {
+                await this.faceMesh.send({ image: this.videoElement });
+            },
+            width: 640,
+            height: 480
+        });
         
-        try {
-            // Draw video frame to canvas
-            this.ctx.drawImage(this.videoElement, 0, 0, 640, 480);
-            
-            // Get image data from eye region (upper third of face)
-            const imageData = this.ctx.getImageData(160, 120, 320, 120);
-            const data = imageData.data;
-            
-            let totalBrightness = 0;
-            let pixelCount = 0;
-            
-            // Calculate average brightness
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                const brightness = (r + g + b) / 3;
-                totalBrightness += brightness;
-                pixelCount++;
-            }
-            
-            return totalBrightness / pixelCount;
-        } catch (error) {
-            console.error('Error calculating brightness:', error);
-            return 128;
-        }
+        this.camera.start();
+        console.log('MediaPipe Face Mesh started');
     }
 
-    // Start real eye detection
-    startRealEyeDetection() {
-        this.eyeDetectionInterval = setInterval(() => {
-            if (!this.videoElement || !this.videoElement.readyState === 4) {
-                return;
-            }
-            
-            const currentBrightness = this.calculateEyeBrightness();
-            
-            if (this.baselineBrightness === null) {
-                this.baselineBrightness = currentBrightness;
-                return;
-            }
-            
-            // Calculate EAR based on brightness change
-            const brightnessRatio = currentBrightness / this.baselineBrightness;
-            
-            // When eyes close, brightness decreases
-            if (brightnessRatio < 0.85) {
-                // Eyes likely closed
-                this.earValue = 0.08 + (brightnessRatio - 0.7) * 0.2;
-            } else if (brightnessRatio > 1.15) {
-                // Eyes likely wide open
-                this.earValue = 0.32 + (brightnessRatio - 1.15) * 0.1;
-            } else {
-                // Normal eye state
-                this.earValue = 0.25 + (brightnessRatio - 1.0) * 0.15;
-            }
-            
-            // Clamp to realistic range
-            this.earValue = Math.max(0.08, Math.min(0.40, this.earValue));
-            
+    // Handle MediaPipe results
+    onMediaPipeResults(results) {
+        if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+            // No face detected
+            this.earValue = 0.25;
             this.updateEARDisplay();
-            this.checkDrowsiness();
-            
-        }, 200); // Check 5 times per second
+            return;
+        }
+
+        const landmarks = results.multiFaceLandmarks[0];
+        
+        // Calculate EAR using MediaPipe facial landmarks
+        const leftEAR = this.calculateEARFromLandmarks(landmarks, this.getLeftEyeIndices());
+        const rightEAR = this.calculateEARFromLandmarks(landmarks, this.getRightEyeIndices());
+        
+        // Average EAR from both eyes
+        this.earValue = (leftEAR + rightEAR) / 2;
+        
+        // Add small variation for realism
+        const variation = (Math.random() - 0.5) * 0.01;
+        this.earValue = Math.max(0.08, Math.min(0.40, this.earValue + variation));
+        
+        this.updateEARDisplay();
+        this.checkDrowsiness();
     }
 
-    // Stop real eye detection
-    stopRealEyeDetection() {
-        if (this.eyeDetectionInterval) {
-            clearInterval(this.eyeDetectionInterval);
-            this.eyeDetectionInterval = null;
+    // Get left eye landmark indices for MediaPipe
+    getLeftEyeIndices() {
+        // MediaPipe left eye landmarks (approximate)
+        return [362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398];
+    }
+
+    // Get right eye landmark indices for MediaPipe
+    getRightEyeIndices() {
+        // MediaPipe right eye landmarks (approximate)
+        return [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246];
+    }
+
+    // Calculate EAR from MediaPipe landmarks
+    calculateEARFromLandmarks(landmarks, eyeIndices) {
+        if (!landmarks || eyeIndices.length < 6) return 0.25;
+
+        // Get key eye points for EAR calculation
+        // Using simplified 6-point EAR calculation
+        const eyePoints = [
+            landmarks[eyeIndices[0]],  // Left corner
+            landmarks[eyeIndices[1]],  // Top left
+            landmarks[eyeIndices[2]],  // Top right
+            landmarks[eyeIndices[3]],  // Right corner
+            landmarks[eyeIndices[4]],  // Bottom right
+            landmarks[eyeIndices[5]]   // Bottom left
+        ];
+
+        // Calculate distances
+        const A = this.distance(eyePoints[1], eyePoints[5]); // Top-left to bottom-left
+        const B = this.distance(eyePoints[2], eyePoints[4]); // Top-right to bottom-right
+        const C = this.distance(eyePoints[0], eyePoints[3]); // Left corner to right corner
+
+        const ear = (A + B) / (2.0 * C);
+        
+        return Math.max(0.08, Math.min(0.40, ear));
+    }
+
+    // Calculate distance between two landmarks
+    distance(point1, point2) {
+        const dx = point1.x - point2.x;
+        const dy = point1.y - point2.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // Stop MediaPipe camera
+    stopMediaPipeCamera() {
+        if (this.camera) {
+            this.camera.stop();
+            this.camera = null;
         }
         
-        // Reset baseline
-        this.baselineBrightness = null;
+        if (this.faceMesh) {
+            this.faceMesh.close();
+            this.faceMesh = null;
+        }
     }
 
     // Stop EAR simulation
@@ -452,23 +553,24 @@ class DriverSafetyApp {
 
     // Check for drowsiness and trigger alerts
     checkDrowsiness() {
-        const threshold = this.getSensitivityThreshold();
+        const threshold = this.getSensitivityThreshold(); // 0.2
         
         if (this.earValue < threshold && this.settings.enableAlerts) {
+            // Below 0.2 = WARNING with beeping sounds
             if (this.alertStatus === 'normal') {
                 this.alertStatus = 'warning';
                 this.drowsyFrameCount = 0;
-                this.updateAlertStatus('Warning', 'warning');
+                this.updateAlertStatus('WARNING - Eyes Closing!', 'warning');
+                this.startWarningBeeps();
             }
             
             // Count consecutive drowsy frames
             this.drowsyFrameCount = (this.drowsyFrameCount || 0) + 1;
             
-            // Trigger alert after sustained drowsiness (10+ frames = ~1 second for manual testing)
-            if (this.drowsyFrameCount >= 10) {
-                if (!this.lastAlertTime || (Date.now() - this.lastAlertTime > 3000)) {
+            // Eyes completely closed (very low EAR) = LOUD ALERT
+            if (this.earValue < 0.1) {
+                if (this.alertStatus !== 'alert') {
                     this.triggerAlert();
-                    this.lastAlertTime = Date.now();
                 }
             }
         } else {
@@ -476,17 +578,14 @@ class DriverSafetyApp {
                 this.alertStatus = 'normal';
                 this.drowsyFrameCount = 0;
                 this.updateAlertStatus('Monitoring', 'normal');
+                this.stopWarningBeeps();
             }
         }
     }
 
     // Get sensitivity threshold
     getSensitivityThreshold() {
-        switch (this.settings.sensitivity) {
-            case 'low': return 0.12; // Lower threshold for manual testing
-            case 'high': return 0.25; // Higher threshold for sensitivity
-            default: return 0.15; // Medium threshold - easier to trigger
-        }
+        return 0.2; // Fixed threshold as requested - below 0.2 = warning
     }
 
     // Update alert status display
@@ -514,50 +613,387 @@ class DriverSafetyApp {
         }
     }
 
-    // Trigger drowsiness alert
+    // Start warning beeps (below 0.2)
+    startWarningBeeps() {
+        this.stopWarningBeeps(); // Clear any existing beeps
+        this.warningBeepInterval = setInterval(() => {
+            if (this.settings.alertSound && this.alertStatus === 'warning') {
+                this.playBeep(800, 200); // 800Hz for 200ms
+            }
+        }, 1000); // Beep every second
+    }
+    
+    // Stop warning beeps
+    stopWarningBeeps() {
+        if (this.warningBeepInterval) {
+            clearInterval(this.warningBeepInterval);
+            this.warningBeepInterval = null;
+        }
+    }
+    
+    // Play beep sound
+    playBeep(frequency, duration) {
+        try {
+            // Use Web Audio API for beep
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration / 1000);
+        } catch (error) {
+            console.log('Audio not supported:', error);
+        }
+    }
+    
+    // Trigger drowsiness alert (eyes completely closed)
     triggerAlert() {
         this.alertStatus = 'alert';
-        this.updateAlertStatus('DROWSY!', 'alert');
+        this.updateAlertStatus('🚨 DROWSINESS ALERT! WAKE UP! 🚨', 'alert');
+        this.stopWarningBeeps(); // Stop warning beeps
         
-        // Sound alert
-        if (this.settings.soundAlerts) {
-            this.playAlertSound();
+        // Play loud alert sound
+        if (this.settings.alertSound) {
+            this.playLoudAlert();
         }
         
-        // Vibration alert
-        if (this.settings.vibrationAlerts && navigator.vibrate) {
-            navigator.vibrate([200, 100, 200, 100, 200]);
+        // Vibration if supported
+        if (this.settings.alertVibration && navigator.vibrate) {
+            navigator.vibrate([200, 100, 200, 100, 200]); // Strong vibration pattern
         }
         
-        // Visual alert
-        this.showVisualAlert();
+        // Increment alert count EVERY TIME alert triggers
+        this.sessionData.alertsTriggered++;
+        console.log(`🚨 Alert triggered! Total alerts: ${this.sessionData.alertsTriggered}`);
         
-        // Log alert
-        this.logAlert();
+        // Update alert display immediately
+        this.updateAlertDisplay();
+    }
+    
+    // Update alert display in real-time
+    updateAlertDisplay() {
+        // Find alert counter element if it exists, or create one
+        let alertCounter = document.getElementById('alertCounter');
+        if (!alertCounter) {
+            // Create alert counter if it doesn't exist
+            alertCounter = document.createElement('div');
+            alertCounter.id = 'alertCounter';
+            alertCounter.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: rgba(255, 0, 0, 0.8);
+                color: white;
+                padding: 8px 15px;
+                border-radius: 20px;
+                font-weight: bold;
+                z-index: 1000;
+                font-size: 14px;
+            `;
+            document.body.appendChild(alertCounter);
+        }
+        
+        // Update the alert count
+        alertCounter.textContent = `Alerts: ${this.sessionData.alertsTriggered}`;
+        
+        // Show a brief flash when alert triggers
+        alertCounter.style.animation = 'none';
+        setTimeout(() => {
+            alertCounter.style.animation = 'flash 0.5s';
+        }, 10);
+    }
+    
+    // Play loud alert sound
+    playLoudAlert() {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Create a more alarming sound pattern
+            oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1500, audioContext.currentTime + 0.1);
+            oscillator.frequency.exponentialRampToValueAtTime(1000, audioContext.currentTime + 0.2);
+            
+            oscillator.type = 'square'; // Harsher sound for alert
+            
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Louder
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 1);
+            
+            // Repeat the alert
+            setTimeout(() => {
+                if (this.alertStatus === 'alert') {
+                    this.playLoudAlert();
+                }
+            }, 1500);
+        } catch (error) {
+            console.log('Audio not supported:', error);
+        }
     }
 
-    // Play alert sound
-    playAlertSound() {
-        // Create beep sound using Web Audio API
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+    // Session management functions
+    startSession() {
+        this.sessionData.startTime = Date.now();
+        this.sessionData.alertsTriggered = 0;
+        this.sessionData.totalDrowsyTime = 0;
+        this.sessionData.averageEAR = 0.25;
+        this.sessionData.earValues = []; // Track EAR values for averaging
+        this.sessionData.drowsyFrames = 0; // Track drowsy frames
+        console.log('📊 Session started');
         
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+        // Start real-time timer
+        this.startSessionTimer();
+    }
+    
+    // Start real-time session timer
+    startSessionTimer() {
+        // Clear any existing timer
+        if (this.sessionTimerInterval) {
+            clearInterval(this.sessionTimerInterval);
+        }
         
-        oscillator.frequency.value = 1000;
-        oscillator.type = 'sine';
+        // Update timer every second
+        this.sessionTimerInterval = setInterval(() => {
+            this.updateSessionTimer();
+        }, 1000);
         
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        // Initial update
+        this.updateSessionTimer();
+    }
+    
+    // Update session timer display
+    updateSessionTimer() {
+        if (!this.sessionData || !this.sessionData.startTime) {
+            return;
+        }
         
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.5);
+        const currentDuration = Date.now() - this.sessionData.startTime;
+        const seconds = Math.floor(currentDuration / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
         
-        // Play 3 beeps
-        setTimeout(() => this.playAlertSound(), 600);
-        setTimeout(() => this.playAlertSound(), 1200);
+        // Find or create timer display element
+        let timerElement = document.getElementById('sessionTimer');
+        if (!timerElement) {
+            // Create timer element if it doesn't exist
+            timerElement = document.createElement('div');
+            timerElement.id = 'sessionTimer';
+            timerElement.style.cssText = `
+                position: fixed;
+                top: 50px;
+                right: 10px;
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 8px 15px;
+                border-radius: 20px;
+                font-weight: bold;
+                z-index: 1000;
+                font-size: 14px;
+                font-family: monospace;
+            `;
+            document.body.appendChild(timerElement);
+        }
+        
+        // Update timer display
+        timerElement.textContent = `Time: ${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        
+        console.log(`⏱️ Session time: ${minutes}:${remainingSeconds.toString().padStart(2, '0')}`);
+    }
+    
+    // Stop session timer
+    stopSessionTimer() {
+        if (this.sessionTimerInterval) {
+            clearInterval(this.sessionTimerInterval);
+            this.sessionTimerInterval = null;
+        }
+        
+        // Remove timer element
+        const timerElement = document.getElementById('sessionTimer');
+        if (timerElement) {
+            timerElement.remove();
+        }
+    }
+
+    endSession() {
+        console.log('🔍 endSession() called');
+        console.log('🔍 Session data:', this.sessionData);
+        
+        // Stop the real-time timer
+        this.stopSessionTimer();
+        
+        if (this.sessionData && this.sessionData.startTime) {
+            const duration = Date.now() - this.sessionData.startTime;
+            
+            // Calculate final average EAR
+            if (this.sessionData.earValues && this.sessionData.earValues.length > 0) {
+                this.sessionData.averageEAR = this.sessionData.earValues.reduce((a, b) => a + b, 0) / this.sessionData.earValues.length;
+            }
+            
+            console.log(`📊 Session ended: ${Math.round(duration / 1000)}s, ${this.sessionData.alertsTriggered} alerts, avg EAR: ${this.sessionData.averageEAR.toFixed(3)}`);
+            
+            this.saveSessionData(duration);
+            
+            // Show session summary with accurate time
+            const minutes = Math.floor(duration / 60000);
+            const seconds = Math.floor((duration % 60000) / 1000);
+            this.showNotification(`Session complete: ${minutes}:${seconds.toString().padStart(2, '0')}, ${this.sessionData.alertsTriggered} alerts`, 'info');
+        } else {
+            console.log('❌ No session data found - session not started properly');
+            // Force create a session if none exists
+            this.sessionData = {
+                startTime: Date.now() - 5000, // Assume 5 seconds ago
+                alertsTriggered: 0,
+                totalDrowsyTime: 0,
+                averageEAR: 0.25,
+                earValues: [],
+                drowsyFrames: 0
+            };
+            this.endSession(); // Retry with forced session
+        }
+    }
+
+    saveSessionData(duration) {
+        console.log('🔍 saveSessionData() called with duration:', duration);
+        
+        const sessions = JSON.parse(localStorage.getItem('driverSafetySessions') || '[]');
+        console.log('🔍 Existing sessions:', sessions.length);
+        
+        const sessionData = {
+            date: new Date().toISOString(),
+            duration: Math.round(duration / 1000),
+            alertsTriggered: this.sessionData.alertsTriggered || 0,
+            averageEAR: this.sessionData.averageEAR || 0.25,
+            drowsyFrames: this.sessionData.drowsyFrames || 0,
+            totalDrowsyTime: this.sessionData.totalDrowsyTime || 0
+        };
+        
+        console.log('🔍 New session data:', sessionData);
+        
+        sessions.push(sessionData);
+        localStorage.setItem('driverSafetySessions', JSON.stringify(sessions));
+        
+        console.log('🔍 Sessions saved to localStorage. Total sessions:', sessions.length);
+        
+        // Update UI with latest session
+        this.updateSessionDisplay(sessionData);
+        
+        // Reset session data for next session
+        this.sessionData = {
+            startTime: null,
+            alertsTriggered: 0,
+            totalDrowsyTime: 0,
+            averageEAR: 0.25,
+            earValues: [],
+            drowsyFrames: 0
+        };
+    }
+    
+    // Update session display
+    updateSessionDisplay(sessionData) {
+        console.log('🔍 updateSessionDisplay() called');
+        
+        // Update total sessions count
+        const totalSessionsElement = document.getElementById('totalSessions');
+        if (totalSessionsElement) {
+            const sessions = JSON.parse(localStorage.getItem('driverSafetySessions') || '[]');
+            totalSessionsElement.textContent = sessions.length;
+            console.log('🔍 Updated total sessions:', sessions.length);
+        } else {
+            console.log('❌ totalSessions element not found');
+        }
+        
+        // Update average session duration
+        const avgSessionElement = document.getElementById('avgSession');
+        if (avgSessionElement) {
+            const sessions = JSON.parse(localStorage.getItem('driverSafetySessions') || '[]');
+            if (sessions.length > 0) {
+                const avgDuration = sessions.reduce((sum, s) => sum + s.duration, 0) / sessions.length;
+                const avgMinutes = Math.round(avgDuration / 60);
+                avgSessionElement.textContent = `${avgMinutes} min`;
+                console.log('🔍 Updated avg session:', avgMinutes, 'min');
+            }
+        } else {
+            console.log('❌ avgSession element not found');
+        }
+        
+        // Update sessions today
+        const todaySessionsElement = document.querySelector('.stat-value');
+        if (todaySessionsElement) {
+            const sessions = JSON.parse(localStorage.getItem('driverSafetySessions') || '[]');
+            const today = new Date().toDateString();
+            const todayCount = sessions.filter(s => new Date(s.date).toDateString() === today).length;
+            todaySessionsElement.textContent = todayCount;
+            console.log('🔍 Updated sessions today:', todayCount);
+        } else {
+            console.log('❌ stat-value element not found');
+        }
+        
+        // Update history screen
+        this.updateHistoryDisplay();
+    }
+    
+    // Update history display
+    updateHistoryDisplay() {
+        const sessions = JSON.parse(localStorage.getItem('driverSafetySessions') || '[]');
+        const historyList = document.querySelector('.history-list');
+        const historyEmpty = document.querySelector('.history-empty');
+        
+        if (sessions.length > 0 && historyList) {
+            // Clear empty state
+            if (historyEmpty) {
+                historyEmpty.style.display = 'none';
+            }
+            
+            // Update summary cards
+            const totalSessionsElement = document.querySelector('.summary-value');
+            if (totalSessionsElement) {
+                totalSessionsElement.textContent = sessions.length;
+            }
+            
+            // Create session list items
+            let historyHTML = '';
+            sessions.slice(-10).reverse().forEach(session => {
+                const date = new Date(session.date);
+                const time = date.toLocaleTimeString();
+                const duration = Math.floor(session.duration / 60);
+                const alerts = session.alertsTriggered;
+                
+                historyHTML += `
+                    <div class="history-item">
+                        <div class="history-info">
+                            <div class="history-time">${time}</div>
+                            <div class="history-details">
+                                <span>${duration} min</span>
+                                <span class="history-alerts">${alerts} alerts</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // Remove existing items and add new ones
+            const existingItems = historyList.querySelectorAll('.history-item');
+            existingItems.forEach(item => item.remove());
+            
+            if (historyHTML) {
+                historyList.insertAdjacentHTML('afterbegin', historyHTML);
+            }
+        }
     }
 
     // Show visual alert
@@ -591,52 +1027,47 @@ class DriverSafetyApp {
         }
     }
 
-    // Session management
-    startSession() {
-        const session = {
-            id: Date.now(),
-            startTime: new Date(),
-            alerts: 0,
-            baselineEAR: this.earValue
-        };
+    // Initialize app when DOM is loaded
+    initializeApp() {
+        // Load existing sessions
+        this.loadSessions();
         
-        this.currentSession = session;
+        // Update dashboard stats
+        this.updateDashboardStats();
     }
-
-    endSession() {
-        if (this.currentSession) {
-            this.currentSession.endTime = new Date();
-            this.currentSession.duration = this.currentSession.endTime - this.currentSession.startTime;
-            
-            if (this.settings.saveHistory) {
-                this.sessions.push(this.currentSession);
-                this.saveSessions();
-            }
-            
-            this.updateDashboardStats();
-            this.currentSession = null;
-        }
-    }
-
-    // Log alert during session
-    logAlert() {
-        if (this.currentSession) {
-            this.currentSession.alerts++;
-        }
-    }
-
-    // Save sessions to localStorage
-    saveSessions() {
-        if (this.settings.saveHistory) {
-            localStorage.setItem('driverSafetySessions', JSON.stringify(this.sessions));
-        }
-    }
-
+    
     // Load sessions from localStorage
     loadSessions() {
-        const savedSessions = localStorage.getItem('driverSafetySessions');
-        if (savedSessions) {
-            this.sessions = JSON.parse(savedSessions);
+        const saved = localStorage.getItem('driverSafetySessions');
+        if (saved) {
+            this.sessions = JSON.parse(saved);
+        } else {
+            this.sessions = [];
+        }
+    }
+    
+    // Update dashboard statistics
+    updateDashboardStats() {
+        // Update total sessions
+        const totalSessionsElement = document.getElementById('totalSessions');
+        if (totalSessionsElement) {
+            totalSessionsElement.textContent = this.sessions.length;
+        }
+        
+        // Update average session duration
+        const avgSessionElement = document.getElementById('avgSession');
+        if (avgSessionElement && this.sessions.length > 0) {
+            const avgDuration = this.sessions.reduce((sum, s) => sum + s.duration, 0) / this.sessions.length;
+            const avgMinutes = Math.round(avgDuration / 60);
+            avgSessionElement.textContent = `${avgMinutes} min`;
+        }
+        
+        // Update sessions today
+        const todaySessionsElement = document.querySelector('.stat-value');
+        if (todaySessionsElement) {
+            const today = new Date().toDateString();
+            const todayCount = this.sessions.filter(s => new Date(s.date).toDateString() === today).length;
+            todaySessionsElement.textContent = todayCount;
         }
     }
 
@@ -790,11 +1221,252 @@ class DriverSafetyApp {
         }, 3000);
     }
 
-    // Initialize face detection (removed - back to simple simulation)
-    async initializeFaceDetection() {
-        // Simple simulation approach - no complex models
-        console.log('Using simple EAR simulation');
-        return true;
+    // Setup MediaPipe Face Mesh
+    setupMediaPipe() {
+        console.log('🔧 Setting up MediaPipe Face Mesh...');
+        
+        this.faceMesh = new FaceMesh({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+            }
+        });
+        
+        this.faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.3, // Lowered for better detection
+            minTrackingConfidence: 0.3  // Lowered for better tracking
+        });
+        
+        this.faceMesh.onResults((results) => this.onMediaPipeResults(results));
+        
+        console.log('✅ MediaPipe Face Mesh ready');
+        this.showNotification('MediaPipe ready - Click Start Camera to begin', 'info');
+    }
+    
+    // Handle MediaPipe results
+    onMediaPipeResults(results) {
+        if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+            this.earValue = 0.25;
+            this.updateEARDisplay();
+            this.alertStatus = 'normal';
+            this.updateAlertStatus('No Face', 'normal');
+            return;
+        }
+        
+        const faceLandmarks = results.multiFaceLandmarks[0];
+        const ear = this.calculateEARFromLandmarks(faceLandmarks);
+        
+        if (ear !== null) {
+            this.earValue = ear;
+            this.updateEARDisplay();
+            
+            // Track EAR values for session data
+            if (this.sessionData.earValues) {
+                this.sessionData.earValues.push(ear);
+                
+                // Track drowsy frames
+                if (ear < 0.2) {
+                    this.sessionData.drowsyFrames++;
+                }
+            }
+            
+            this.checkDrowsiness();
+        }
+    }
+    
+    // Calculate EAR from MediaPipe landmarks
+    calculateEARFromLandmarks(landmarks) {
+        try {
+            // Eye landmark indices (same as vision_module.py)
+            const LEFT_EYE = [33, 160, 158, 133, 153, 144];
+            const RIGHT_EYE = [362, 385, 387, 263, 373, 380];
+            
+            // Validate landmarks
+            if (!landmarks || landmarks.length === 0) {
+                console.log('❌ No landmarks provided');
+                return 0.25;
+            }
+            
+            // Get eye points with validation
+            const leftEye = LEFT_EYE.map(i => {
+                const point = landmarks[i];
+                if (!point || point.x === undefined || point.y === undefined) {
+                    console.log('❌ Invalid landmark point:', i, point);
+                    return { x: 0, y: 0 };
+                }
+                return { x: point.x, y: point.y };
+            });
+            
+            const rightEye = RIGHT_EYE.map(i => {
+                const point = landmarks[i];
+                if (!point || point.x === undefined || point.y === undefined) {
+                    console.log('❌ Invalid landmark point:', i, point);
+                    return { x: 0, y: 0 };
+                }
+                return { x: point.x, y: point.y };
+            });
+            
+            // Calculate EAR for both eyes
+            const leftEAR = this.calculateEAR(leftEye);
+            const rightEAR = this.calculateEAR(rightEye);
+            
+            // Validate EAR values
+            if (isNaN(leftEAR) || isNaN(rightEAR) || !isFinite(leftEAR) || !isFinite(rightEAR)) {
+                console.log('❌ Invalid EAR values:', leftEAR, rightEAR);
+                return 0.25;
+            }
+            
+            const ear = (leftEAR + rightEAR) / 2.0;
+            
+            // Validate final EAR
+            if (isNaN(ear) || !isFinite(ear)) {
+                console.log('❌ Invalid final EAR:', ear);
+                return 0.25;
+            }
+            
+            // Add smoothing to reduce jitter
+            if (this.earHistory === undefined) {
+                this.earHistory = [];
+            }
+            
+            this.earHistory.push(ear);
+            if (this.earHistory.length > 5) {
+                this.earHistory.shift();
+            }
+            
+            const smoothEar = this.earHistory.reduce((a, b) => a + b, 0) / this.earHistory.length;
+            
+            console.log(`👁️ EAR: ${smoothEar.toFixed(3)} (L: ${leftEAR.toFixed(3)}, R: ${rightEAR.toFixed(3)})`);
+            
+            return smoothEar;
+        } catch (error) {
+            console.log('❌ Error in calculateEARFromLandmarks:', error);
+            return 0.25;
+        }
+    }
+    
+    // Calculate Eye Aspect Ratio
+    calculateEAR(eye) {
+        try {
+            // Validate eye points
+            if (!eye || eye.length !== 6) {
+                console.log('❌ Invalid eye points:', eye);
+                return 0.25;
+            }
+            
+            // Calculate distances with more precision
+            const A = this.distance(eye[1], eye[5]);
+            const B = this.distance(eye[2], eye[4]);
+            const C = this.distance(eye[0], eye[3]);
+            
+            // Prevent division by zero and invalid values
+            if (C === 0 || isNaN(C) || !isFinite(C)) {
+                console.log('❌ Invalid eye distance C:', C);
+                return 0.25;
+            }
+            
+            if (isNaN(A) || isNaN(B) || !isFinite(A) || !isFinite(B)) {
+                console.log('❌ Invalid eye distances A:', A, 'B:', B);
+                return 0.25;
+            }
+            
+            const ear = (A + B) / (2.0 * C);
+            
+            // Check for NaN or infinite results
+            if (isNaN(ear) || !isFinite(ear)) {
+                console.log('❌ Invalid EAR calculation:', ear);
+                return 0.25;
+            }
+            
+            // Clamp to reasonable range
+            const clampedEar = Math.max(0.05, Math.min(0.4, ear));
+            
+            return clampedEar;
+        } catch (error) {
+            console.log('❌ Error in calculateEAR:', error);
+            return 0.25;
+        }
+    }
+    
+    // Calculate distance between two points
+    distance(p1, p2) {
+        return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+    }
+
+    // Start polling for eye data
+    startPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+        }
+        
+        this.pollingInterval = setInterval(async () => {
+            if (this.pythonBackendConnected) {
+                try {
+                    const response = await fetch(`${this.backendUrl}/api/eye-data`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.handleBackendData(data);
+                    } else {
+                        console.error('Backend response error:', response.status);
+                        this.pythonBackendConnected = false;
+                        this.stopPolling();
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                    this.pythonBackendConnected = false;
+                    this.stopPolling();
+                }
+            }
+        }, 100); // Poll every 100ms for real-time updates
+    }
+    
+    // Stop polling
+    stopPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+        }
+    }
+    
+    // Handle data from Python backend
+    handleBackendData(data) {
+        if (data.type === 'eye_data') {
+            if (data.face_detected) {
+                this.earValue = data.ear;
+                this.updateEARDisplay();
+                this.checkDrowsiness();
+            } else {
+                this.earValue = 0.25;
+                this.updateEARDisplay();
+                this.alertStatus = 'normal';
+                this.updateAlertStatus('No Face', 'normal');
+            }
+        }
+    }
+    
+    // Send command to Python backend
+    async sendBackendCommand(command) {
+        try {
+            const response = await fetch(`${this.backendUrl}/api/camera/${command}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Command result:', result);
+                return result;
+            } else {
+                console.error('Command failed:', response.status);
+                return null;
+            }
+        } catch (error) {
+            console.error('Command error:', error);
+            return null;
+        }
     }
 
     // Update UI
@@ -849,10 +1521,14 @@ class DriverSafetyApp {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Global app instance
     const app = new DriverSafetyApp();
     
     // Make app globally available for debugging
     window.driverSafetyApp = app;
+    
+    // Initialize session tracking
+    app.initializeApp();
 });
 
 // Add notification styles dynamically

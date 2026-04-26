@@ -6,7 +6,11 @@
     <title>Driver Safety - Drowsiness Detection</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    </head>
+    
+    <!-- MediaPipe Face Mesh -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+</head>
 <body>
     <!-- Consent Popup (shown on first visit) -->
     <div id="consentPopup" class="consent-popup">
@@ -91,7 +95,7 @@
             <div id="monitoringScreen" class="screen">
                 <div class="monitoring-content">
                     <div class="camera-container">
-                        <video id="cameraFeed" class="camera-feed" autoplay muted></video>
+                        <video id="cameraFeed" class="camera-feed" autoplay muted playsinline style="background: #000; display: none;"></video>
                         <canvas id="overlayCanvas" class="overlay-canvas"></canvas>
                         
                         <div class="monitoring-overlay">

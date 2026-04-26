@@ -1,6 +1,5 @@
 numpy
-scipy
 opencv-python
-imutils
 mediapipe
-playsound
+flask
+flask-cors

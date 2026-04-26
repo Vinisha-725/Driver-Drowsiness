@@ -62,3 +62,40 @@ pip-delete-this-directory.txt
 *.pkl
 *.pickle
 *.joblib
+
+# Node.js / React Frontend
+frontend/node_modules/
+frontend/.npm
+frontend/.eslintcache
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Test files
+*.test.js
+*.test.jsx
+coverage/
+.nyc_output/
+
+# Session data and logs
+*.session
+session_data/
+logs/
+
+# API test files
+test_api.html
+
+# Temporary camera frames
+temp_frames/
+*.jpg.bak
