@@ -7,7 +7,9 @@ const Settings = () => {
     vibrationEnabled: false,
     sensitivity: 'medium',
     saveHistory: true,
-    userName: 'Driver'
+    userName: 'Driver',
+    // Add new setting here
+    newSetting: 'defaultValue'
   })
   
   const sessionManager = new SessionManager()
@@ -51,7 +53,8 @@ const Settings = () => {
   ]
   
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="min-h-screen bg-dark-bg text-white p-6">
+      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
@@ -207,6 +210,7 @@ const Settings = () => {
           </div>
         </div>
       </div>
+    </div>
     </div>
   )
 }

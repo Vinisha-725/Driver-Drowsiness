@@ -4,11 +4,11 @@ const Navbar = () => {
   const location = useLocation()
   
   const navItems = [
-    { path: '/', label: 'Home', icon: '🏠' },
-    { path: '/monitoring', label: 'Monitor', icon: '👁️' },
-    { path: '/profile', label: 'Profile', icon: '👤' },
-    { path: '/settings', label: 'Settings', icon: '⚙️' },
-    { path: '/history', label: 'History', icon: '📊' },
+    { path: '/', label: 'Home' },
+    { path: '/monitoring', label: 'Monitor' },
+    { path: '/profile', label: 'Profile' },
+    { path: '/settings', label: 'Settings' },
+    { path: '/history', label: 'History' },
   ]
 
   return (
@@ -16,7 +16,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="text-2xl">🚗</div>
+            <div className="text-2xl"></div>
             <h1 className="text-xl font-bold text-neon-green">Driver Safety</h1>
           </div>
           

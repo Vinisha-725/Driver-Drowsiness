@@ -95,7 +95,8 @@ const Profile = () => {
   }
   
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="min-h-screen bg-dark-bg text-white p-6">
+      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Driver Profile</h1>
@@ -234,6 +235,7 @@ const Profile = () => {
           </button>
         </div>
       </div>
+    </div>
     </div>
   )
 }

@@ -1,5 +1,6 @@
-numpy
-opencv-python
-mediapipe
+numpy>=2.0.0
+opencv-python>=4.5.0
+mediapipe==0.10.5
+scipy>=1.7.0
+playsound==1.2.2
 flask
-flask-cors
