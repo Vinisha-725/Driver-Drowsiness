@@ -42,8 +42,13 @@ def EAR(eye):
 def compute_ear_from_frame(frame):
     h, w, _ = frame.shape
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-    results = face_mesh.process(rgb)
+    
+    try:
+        # Use regular RGB image processing
+        results = face_mesh.process(rgb)
+    except Exception as e:
+        print(f"MediaPipe error: {e}")
+        return None, None, None
 
     if not results.multi_face_landmarks:
         return None, None, None

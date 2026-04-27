@@ -15,6 +15,10 @@ const Monitoring = () => {
     earValues: [],
     drowsyFrames: 0
   })
+  const [cameraReady, setCameraReady] = useState(false)
+  const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false)
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false)
+  const [isPageLoading, setIsPageLoading] = useState(true)
   
   const sessionManager = new SessionManager()
   const timerIntervalRef = useRef(null)
@@ -83,6 +87,35 @@ const Monitoring = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
   
+  const handleStartCalibration = async () => {
+    console.log('🎯 Starting calibration...')
+    await startCalibration()
+  }
+  
+  const handlePermissionGranted = async () => {
+    setCameraPermissionGranted(true)
+    setShowPermissionDialog(false)
+    
+    try {
+      // Pre-warm camera after permission is granted
+      await startCamera()
+      setCameraReady(true)
+      console.log('📷 Camera pre-warmed after permission granted')
+    } catch (error) {
+      console.error('Camera pre-warm failed after permission:', error)
+    }
+  }
+  
+  const handlePermissionDenied = (error) => {
+    setCameraPermissionGranted(false)
+    setShowPermissionDialog(false)
+    
+    // Navigate back to home if permission is denied
+    setTimeout(() => {
+      navigate('/')
+    }, 2000)
+  }
+  
   const startMonitoring = async () => {
     try {
       await startCamera()
@@ -129,6 +162,7 @@ const Monitoring = () => {
       alerts: prev.alerts + 1
     }))
   }
+  
   
   return (
     <div className="space-y-6">
@@ -197,7 +231,7 @@ const Monitoring = () => {
                 
                 {!isMonitoring && (
                   <button 
-                    onClick={startCalibration}
+                    onClick={handleStartCalibration}
                     disabled={isCalibrating}
                     className="btn-secondary flex items-center space-x-2 disabled:opacity-50"
                   >

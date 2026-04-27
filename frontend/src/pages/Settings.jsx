@@ -53,16 +53,16 @@ const Settings = () => {
   ]
   
   return (
-    <div className="min-h-screen bg-dark-bg text-white p-6">
-      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+    <div className="min-h-screen p-6">
+      <div className="max-w-4xl mx-auto space-y-6 animate-fadeInUp">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-        <p className="text-gray-400">Configure your drowsiness detection preferences</p>
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent mb-2">Settings</h1>
+        <p className="text-gray-400 text-lg">Configure your drowsiness detection preferences</p>
       </div>
       
       {/* Alert Preferences */}
-      <div className="glass-card p-6">
+      <div className="card-professional p-6">
         <h2 className="text-xl font-bold text-white mb-6">Alert Preferences</h2>
         
         <div className="space-y-6">
@@ -72,18 +72,10 @@ const Settings = () => {
               <h3 className="text-white font-semibold">Sound Alerts</h3>
               <p className="text-gray-400 text-sm">Enable audio alerts for drowsiness detection</p>
             </div>
-            <button
+            <div
               onClick={() => updateSetting('soundEnabled', !settings.soundEnabled)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings.soundEnabled ? 'bg-neon-green' : 'bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  settings.soundEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+              className={`toggle-switch ${settings.soundEnabled ? 'active' : ''}`}
+            />
           </div>
           
           {/* Vibration Alerts */}
@@ -92,24 +84,16 @@ const Settings = () => {
               <h3 className="text-white font-semibold">Vibration Alerts</h3>
               <p className="text-gray-400 text-sm">Enable vibration alerts on mobile devices</p>
             </div>
-            <button
+            <div
               onClick={() => updateSetting('vibrationEnabled', !settings.vibrationEnabled)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings.vibrationEnabled ? 'bg-neon-green' : 'bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  settings.vibrationEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+              className={`toggle-switch ${settings.vibrationEnabled ? 'active' : ''}`}
+            />
           </div>
         </div>
       </div>
       
       {/* Sensitivity Settings */}
-      <div className="glass-card p-6">
+      <div className="card-professional p-6">
         <h2 className="text-xl font-bold text-white mb-6">Detection Sensitivity</h2>
         
         <div className="space-y-4">
@@ -118,8 +102,8 @@ const Settings = () => {
               key={option.value}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                 settings.sensitivity === option.value
-                  ? 'border-neon-green bg-neon-green/10'
-                  : 'border-dark-border hover:border-gray-600'
+                  ? 'border-blue-400 bg-blue-400/10'
+                  : 'border-gray-600 hover:border-gray-500'
               }`}
               onClick={() => updateSetting('sensitivity', option.value)}
             >
@@ -131,12 +115,12 @@ const Settings = () => {
                 <div
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                     settings.sensitivity === option.value
-                      ? 'border-neon-green'
+                      ? 'border-blue-400'
                       : 'border-gray-600'
                   }`}
                 >
                   {settings.sensitivity === option.value && (
-                    <div className="w-2 h-2 bg-neon-green rounded-full" />
+                    <div className="w-2 h-2 bg-blue-400 rounded-full" />
                   )}
                 </div>
               </div>
@@ -146,7 +130,7 @@ const Settings = () => {
       </div>
       
       {/* Data & Privacy */}
-      <div className="glass-card p-6">
+      <div className="card-professional p-6">
         <h2 className="text-xl font-bold text-white mb-6">Data & Privacy</h2>
         
         <div className="space-y-6">
@@ -156,28 +140,22 @@ const Settings = () => {
               <h3 className="text-white font-semibold">Save Session History</h3>
               <p className="text-gray-400 text-sm">Store monitoring sessions locally on your device</p>
             </div>
-            <button
+            <div
               onClick={() => updateSetting('saveHistory', !settings.saveHistory)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings.saveHistory ? 'bg-neon-green' : 'bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  settings.saveHistory ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+              className={`toggle-switch ${settings.saveHistory ? 'active' : ''}`}
+            />
           </div>
           
           {/* Clear Data */}
-          <div className="border-t border-dark-border pt-6">
+          <div className="border-t border-gray-700 pt-6">
             <button
               onClick={clearAllData}
               className="btn-danger"
             >
               <span className="flex items-center space-x-2">
-                <span>🗑️</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
                 <span>Clear All Data</span>
               </span>
             </button>
@@ -189,7 +167,7 @@ const Settings = () => {
       </div>
       
       {/* About */}
-      <div className="glass-card p-6">
+      <div className="card-professional p-6">
         <h2 className="text-xl font-bold text-white mb-4">About</h2>
         <div className="space-y-3 text-gray-400">
           <p><strong>Driver Safety System</strong> v1.0.0</p>
@@ -198,7 +176,7 @@ const Settings = () => {
             This application uses MediaPipe Face Mesh for accurate eye tracking and runs entirely in your browser. 
             No data is sent to external servers - everything stays private on your device.
           </p>
-          <div className="pt-4 border-t border-dark-border">
+          <div className="pt-4 border-t border-gray-700">
             <p className="text-sm"><strong>Features:</strong></p>
             <ul className="text-sm list-disc list-inside space-y-1 mt-2">
               <li>Real-time eye aspect ratio monitoring</li>

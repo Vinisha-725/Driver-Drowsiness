@@ -16,7 +16,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="text-2xl"></div>
+            <div className="text-2xl">🚗</div>
             <h1 className="text-xl font-bold text-neon-green">Driver Safety</h1>
           </div>
           
@@ -28,11 +28,11 @@ const Navbar = () => {
                 className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center space-x-2 ${
                   location.pathname === item.path
                     ? 'bg-neon-green/20 text-neon-green border border-neon-green/50'
-                    : 'hover:bg-dark-card/50 text-gray-300 hover:text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-dark-card/50'
                 }`}
               >
-                <span>{item.icon}</span>
                 <span className="hidden sm:inline">{item.label}</span>
+                <span className="sm:hidden">{item.label.charAt(0)}</span>
               </Link>
             ))}
           </div>

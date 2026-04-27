@@ -62,7 +62,7 @@ export const useEAR = () => {
           setDrowsyFrames(earData.drowsy_frames)
           setIsDetecting(earData.is_detecting)
         }
-      }, 200) // 5 FPS polling (reduced from 10 FPS)
+      }, 100) // 10 FPS polling for balanced performance
       
       // Start polling for camera frames
       frameIntervalRef.current = setInterval(async () => {
@@ -70,8 +70,10 @@ export const useEAR = () => {
         if (frameData && frameData.frame) {
           const frameUrl = `data:image/jpeg;base64,${frameData.frame}`
           setCameraFrame(frameUrl)
+        } else if (frameData && frameData.error) {
+          console.error('❌ Frame error:', frameData.error)
         }
-      }, 200) // 5 FPS for frames (reduced from 10 FPS)
+      }, 50) // ~20 FPS for frames (balanced performance)
     }
   }, [apiCall])
   

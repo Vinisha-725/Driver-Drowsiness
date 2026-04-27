@@ -22,27 +22,56 @@ alert_triggered = False
 ear_history = []
 fps = 0
 prev_time = 0
+latest_frame = None  # Shared frame buffer
+frame_lock = threading.Lock()  # Lock for thread-safe frame access
 
 def camera_thread():
     """Background thread for camera processing"""
-    global camera, detection_active, current_ear, drowsy_frame_count, last_alert_time, alert_triggered, ear_history, fps, prev_time
+    global camera, detection_active, current_ear, drowsy_frame_count, last_alert_time, alert_triggered, ear_history, fps, prev_time, latest_frame
     
     if camera is None:
         camera = cv2.VideoCapture(0)
+        
+        # Wait a moment for camera to initialize
+        time.sleep(0.5)
+        
         if not camera.isOpened():
             print("❌ Failed to open camera")
             return
+        
+        # Standard camera settings for compatibility
+        camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        camera.set(cv2.CAP_PROP_FPS, 30)
+        camera.set(cv2.CAP_PROP_AUTOFOCUS, 1)
+        camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
+        camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Reduce buffer for lower latency
+        
+        # Verify settings were applied
+        actual_width = camera.get(cv2.CAP_PROP_FRAME_WIDTH)
+        actual_height = camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        print(f"📷 Camera initialized: {actual_width}x{actual_height}")
+        
+        # Test read a frame to make sure it works
+        ret, test_frame = camera.read()
+        if ret:
+            print(f"✅ Test frame captured: {test_frame.shape}")
+        else:
+            print("❌ Test frame capture failed")
     
-    print("🎥 Camera thread started")
+    print("🎥 Camera thread started (optimized)")
     
     while detection_active:
         ret, frame = camera.read()
         if not ret:
             continue
         
-        # Resize and flip for better UX
-        frame = cv2.resize(frame, (640, 480))
+        # Frame is already resized by camera settings, just flip
         frame = cv2.flip(frame, 1)
+        
+        # Store frame in shared buffer for get_frame endpoint
+        with frame_lock:
+            latest_frame = frame.copy()
         
         # Get EAR from vision module
         ear, left_eye, right_eye = compute_ear_from_frame(frame)
@@ -87,8 +116,8 @@ def camera_thread():
         curr_time = time.time()
         if prev_time != 0:
             fps = 1 / (curr_time - prev_time)
-    # Small delay to prevent excessive CPU usage
-        time.sleep(0.02)  # ~50 FPS for smoother processing
+    # Optimized delay for performance
+        time.sleep(0.03)  # ~33 FPS processing capability
 
 @app.route('/api/start_camera', methods=['POST'])
 def start_camera():
@@ -108,13 +137,24 @@ def start_camera():
 @app.route('/api/stop_camera', methods=['POST'])
 def stop_camera():
     """Stop the camera and detection thread"""
-    global detection_active, camera
+    global detection_active, camera, latest_frame
     
     detection_active = False
     
+    # Clear shared frame buffer
+    with frame_lock:
+        latest_frame = None
+    
+    # Wait a moment for thread to finish
+    time.sleep(0.1)
+    
     if camera:
-        camera.release()
-        camera = None
+        try:
+            camera.release()
+        except Exception as e:
+            print(f"❌ Error releasing camera: {e}")
+        finally:
+            camera = None
     
     return jsonify({'status': 'stopped'})
 
@@ -136,16 +176,25 @@ def get_frame():
     if camera is None or not detection_active:
         return jsonify({'error': 'Camera not active'})
     
-    ret, frame = camera.read()
-    if not ret:
-        return jsonify({'error': 'Failed to capture frame'})
+    # Use shared frame buffer to avoid camera conflicts
+    with frame_lock:
+        if latest_frame is None:
+            return jsonify({'error': 'No frame available yet'})
+        
+        frame = latest_frame.copy()
     
-    # Resize and flip
-    frame = cv2.resize(frame, (640, 480))
-    frame = cv2.flip(frame, 1)
+    # Add debug info
+    print(f"📸 Frame captured from buffer: {frame.shape}")
     
-    # Get EAR and draw overlays
-    ear, left_eye, right_eye = compute_ear_from_frame(frame)
+    try:
+        # Get EAR and draw overlays
+        ear, left_eye, right_eye = compute_ear_from_frame(frame)
+    except Exception as e:
+        print(f"❌ Error computing EAR: {e}")
+        # Return frame without EAR data if computation fails
+        ear = None
+        left_eye = None
+        right_eye = None
     
     if ear is not None:
         # Draw EAR text (no eye contours)
@@ -161,10 +210,12 @@ def get_frame():
             cv2.putText(frame, "WARNING: DROWSY!", (200, 50), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 165, 0), 2)
     
-    # Encode frame as JPEG with lower quality for faster transmission
-    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 70]  # Reduced quality
+    # Encode frame as JPEG with optimized quality for speed
+    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 60]  # Optimized for speed
     _, buffer = cv2.imencode('.jpg', frame, encode_param)
     frame_base64 = base64.b64encode(buffer).decode('utf-8')
+    
+    print(f"📦 Frame encoded: {len(frame_base64)} bytes")
     
     return jsonify({
         'frame': frame_base64,
