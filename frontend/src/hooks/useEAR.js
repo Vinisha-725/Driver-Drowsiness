@@ -61,6 +61,7 @@ export const useEAR = () => {
           setAlertTriggered(earData.alert_triggered)
           setDrowsyFrames(earData.drowsy_frames)
           setIsDetecting(earData.is_detecting)
+          console.log('📊 EAR Data:', earData)
         }
       }, 100) // 10 FPS polling for balanced performance
       
@@ -68,13 +69,12 @@ export const useEAR = () => {
       frameIntervalRef.current = setInterval(async () => {
         const frameData = await apiCall('/get_frame')
         if (frameData && frameData.frame) {
-          const frameUrl = `data:image/jpeg;base64,${frameData.frame}`
+          const frameUrl = `data:image/jpeg;base64,${frameData.frame}?t=${Date.now()}`
           setCameraFrame(frameUrl)
+          console.log('📸 Frame received, size:', frameData.frame.length)
+        } else if (frameData && frameData.error) {
+          console.error('❌ Frame error:', frameData.error)
         }
-        // Skip error logging for performance
-        // else if (frameData && frameData.error) {
-        //   console.error('❌ Frame error:', frameData.error)
-        // }
       }, 66) // ~15 FPS for frames (stable performance)
     }
   }, [apiCall])

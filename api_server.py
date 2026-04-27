@@ -83,6 +83,10 @@ def camera_thread():
         # Get EAR from vision module
         ear, left_eye, right_eye = compute_ear_from_frame(frame)
         
+        # Debug: Print frame update status
+        if ear is not None:
+            print(f"🔄 Frame updated: EAR={ear:.3f}, Shape={frame.shape}")
+        
         if ear is not None:
             # Smooth EAR with history (limit history size)
             ear_history.append(ear)

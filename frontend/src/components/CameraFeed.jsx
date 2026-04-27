@@ -10,6 +10,7 @@ const CameraFeed = ({ isDetecting, fps, cameraFrame }) => {
             className="absolute inset-0 w-full h-full object-cover"
             onLoad={() => console.log('✅ Camera frame loaded successfully')}
             onError={(e) => console.error('❌ Camera frame failed to load:', e)}
+            key={Date.now()} // Force re-render on each frame
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
