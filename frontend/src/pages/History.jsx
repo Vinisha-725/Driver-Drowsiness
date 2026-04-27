@@ -31,6 +31,10 @@ const History = () => {
 
   const [filter, setFilter] = useState('all') // all, today, week, month
 
+  const [selectedSession, setSelectedSession] = useState(null) // For detail view
+
+  const [showDetailModal, setShowDetailModal] = useState(false)
+
   
 
   const sessionManager = new SessionManager()
@@ -170,6 +174,40 @@ const History = () => {
       loadData()
 
     }
+
+  }
+
+  
+
+  const deleteSession = (sessionDate) => {
+
+    if (confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+
+      sessionManager.deleteSession(sessionDate)
+
+      loadData()
+
+    }
+
+  }
+
+  
+
+  const viewSessionDetails = (session) => {
+
+    setSelectedSession(session)
+
+    setShowDetailModal(true)
+
+  }
+
+  
+
+  const closeDetailModal = () => {
+
+    setSelectedSession(null)
+
+    setShowDetailModal(false)
 
   }
 
@@ -420,13 +458,15 @@ const History = () => {
 
                 key={session.date}
 
-                className="bg-dark-card/50 border border-dark-border rounded-lg p-4 hover:border-neon-green/50 transition-all"
+                className="bg-dark-card/50 border border-dark-border rounded-lg p-4 hover:border-neon-green/50 transition-all cursor-pointer"
+
+                onClick={() => viewSessionDetails(session)}
 
               >
 
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
 
-                  <div className="mb-4 lg:mb-0">
+                  <div className="mb-4 lg:mb-0 flex-1">
 
                     <div className="text-white font-semibold mb-2">
 
@@ -510,6 +550,30 @@ const History = () => {
 
                     )}
 
+                    <button
+
+                      onClick={(e) => {
+
+                        e.stopPropagation()
+
+                        deleteSession(session.date)
+
+                      }}
+
+                      className="ml-2 p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
+
+                      title="Delete session"
+
+                    >
+
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+
+                      </svg>
+
+                    </button>
+
                   </div>
 
                 </div>
@@ -561,12 +625,244 @@ const History = () => {
       )}
 
     </div>
-    </div>
-  )
 
+    {/* Session Detail Modal */}
+
+      {showDetailModal && selectedSession && (
+
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+
+          <div className="glass-card p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+
+            <div className="flex justify-between items-start mb-6">
+
+              <h2 className="text-2xl font-bold text-white">Session Details</h2>
+
+              <button
+
+                onClick={closeDetailModal}
+
+                className="text-gray-400 hover:text-white transition-colors"
+
+              >
+
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+
+                </svg>
+
+              </button>
+
+            </div>
+
+            
+
+            <div className="space-y-6">
+
+              {/* Basic Info */}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div className="bg-dark-card/50 rounded-lg p-4">
+
+                  <h3 className="text-lg font-semibold text-white mb-3">Basic Information</h3>
+
+                  <div className="space-y-2">
+
+                    <div className="flex justify-between">
+
+                      <span className="text-gray-400">Date & Time:</span>
+
+                      <span className="text-white">{formatDate(selectedSession.date)}</span>
+
+                    </div>
+
+                    <div className="flex justify-between">
+
+                      <span className="text-gray-400">Duration:</span>
+
+                      <span className="text-white">{formatDuration(selectedSession.duration)}</span>
+
+                    </div>
+
+                    <div className="flex justify-between">
+
+                      <span className="text-gray-400">Total Alerts:</span>
+
+                      <span className={`font-semibold ${selectedSession.alerts > 0 ? 'text-neon-red' : 'text-neon-green'}`}>
+
+                        {selectedSession.alerts}
+
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                
+
+                <div className="bg-dark-card/50 rounded-lg p-4">
+
+                  <h3 className="text-lg font-semibold text-white mb-3">Performance Metrics</h3>
+
+                  <div className="space-y-2">
+
+                    <div className="flex justify-between">
+
+                      <span className="text-gray-400">Average EAR:</span>
+
+                      <span className="text-white">{(selectedSession.avgEAR || 0.25).toFixed(3)}</span>
+
+                    </div>
+
+                    <div className="flex justify-between">
+
+                      <span className="text-gray-400">Drowsy Frames:</span>
+
+                      <span className="text-white">{selectedSession.drowsyFrames || 0}</span>
+
+                    </div>
+
+                    <div className="flex justify-between">
+
+                      <span className="text-gray-400">Alert Rate:</span>
+
+                      <span className="text-white">
+
+                        {selectedSession.duration > 0 
+
+                          ? `${(selectedSession.alerts / (selectedSession.duration / 60)).toFixed(1)}/min`
+
+                          : 'N/A'
+
+                        }
+
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              
+
+              {/* Status Assessment */}
+
+              <div className="bg-dark-card/50 rounded-lg p-4">
+
+                <h3 className="text-lg font-semibold text-white mb-3">Status Assessment</h3>
+
+                <div className="flex items-center space-x-4">
+
+                  {selectedSession.alerts === 0 ? (
+
+                    <>
+
+                      <div className="w-4 h-4 bg-neon-green rounded-full animate-pulse"></div>
+
+                      <div>
+
+                        <div className="text-neon-green font-semibold">Excellent Performance</div>
+
+                        <div className="text-gray-400 text-sm">No drowsiness alerts detected</div>
+
+                      </div>
+
+                    </>
+
+                  ) : selectedSession.alerts <= 5 ? (
+
+                    <>
+
+                      <div className="w-4 h-4 bg-neon-yellow rounded-full animate-pulse"></div>
+
+                      <div>
+
+                        <div className="text-neon-yellow font-semibold">Moderate Performance</div>
+
+                        <div className="text-gray-400 text-sm">Some drowsiness detected, but manageable</div>
+
+                      </div>
+
+                    </>
+
+                  ) : (
+
+                    <>
+
+                      <div className="w-4 h-4 bg-neon-red rounded-full animate-pulse"></div>
+
+                      <div>
+
+                        <div className="text-neon-red font-semibold">High Alert Count</div>
+
+                        <div className="text-gray-400 text-sm">Significant drowsiness detected, consider rest</div>
+
+                      </div>
+
+                    </>
+
+                  )}
+
+                </div>
+
+              </div>
+
+              
+
+              {/* Actions */}
+
+              <div className="flex justify-end space-x-4 pt-4 border-t border-dark-border">
+
+                <button
+
+                  onClick={() => {
+
+                    deleteSession(selectedSession.date)
+
+                    closeDetailModal()
+
+                  }}
+
+                  className="btn-danger"
+
+                >
+
+                  Delete Session
+
+                </button>
+
+                <button
+
+                  onClick={closeDetailModal}
+
+                  className="btn-primary"
+
+                >
+
+                  Close
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+    </div>
+
+  )
 }
 
-
-
 export default History
-

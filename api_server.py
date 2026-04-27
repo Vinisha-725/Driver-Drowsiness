@@ -62,24 +62,31 @@ def camera_thread():
     print("🎥 Camera thread started (optimized)")
     
     while detection_active:
-        ret, frame = camera.read()
-        if not ret:
+        try:
+            ret, frame = camera.read()
+            if not ret:
+                continue
+            
+            # Frame is already resized by camera settings, just flip
+            frame = cv2.flip(frame, 1)
+        except Exception as e:
+            print(f"Camera read error: {e}")
             continue
         
-        # Frame is already resized by camera settings, just flip
-        frame = cv2.flip(frame, 1)
-        
-        # Store frame in shared buffer for get_frame endpoint
+        # Store frame in shared buffer for get_frame endpoint (limit memory usage)
         with frame_lock:
+            # Clear previous frame to prevent memory buildup
+            if latest_frame is not None:
+                del latest_frame
             latest_frame = frame.copy()
         
         # Get EAR from vision module
         ear, left_eye, right_eye = compute_ear_from_frame(frame)
         
         if ear is not None:
-            # Smooth EAR with history
+            # Smooth EAR with history (limit history size)
             ear_history.append(ear)
-            if len(ear_history) > 10:
+            if len(ear_history) > 5:  # Reduced from 10 to 5 for less memory
                 ear_history.pop(0)
             
             smooth_ear = sum(ear_history) / len(ear_history)
@@ -181,16 +188,13 @@ def get_frame():
         if latest_frame is None:
             return jsonify({'error': 'No frame available yet'})
         
-        frame = latest_frame.copy()
-    
-    # Add debug info
-    print(f"📸 Frame captured from buffer: {frame.shape}")
+        # Use frame directly without copying to reduce memory usage
+        frame = latest_frame
     
     try:
         # Get EAR and draw overlays
         ear, left_eye, right_eye = compute_ear_from_frame(frame)
     except Exception as e:
-        print(f"❌ Error computing EAR: {e}")
         # Return frame without EAR data if computation fails
         ear = None
         left_eye = None
@@ -211,11 +215,12 @@ def get_frame():
                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 165, 0), 2)
     
     # Encode frame as JPEG with optimized quality for speed
-    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 60]  # Optimized for speed
+    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 50]  # Further reduced for better performance
     _, buffer = cv2.imencode('.jpg', frame, encode_param)
     frame_base64 = base64.b64encode(buffer).decode('utf-8')
     
-    print(f"📦 Frame encoded: {len(frame_base64)} bytes")
+    # Skip debug prints for performance
+    # print(f"📦 Frame encoded: {len(frame_base64)} bytes")
     
     return jsonify({
         'frame': frame_base64,

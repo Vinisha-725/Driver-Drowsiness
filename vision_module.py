@@ -46,8 +46,15 @@ def compute_ear_from_frame(frame):
     try:
         # Use regular RGB image processing
         results = face_mesh.process(rgb)
+        
+        # Clear MediaPipe results to prevent memory buildup
+        if results is not None:
+            results.multi_face_landmarks = None
+            results.multi_face_connections = None
+            results.multi_face_blendshapes = None
     except Exception as e:
-        print(f"MediaPipe error: {e}")
+        # Skip error logging for performance
+        # print(f"MediaPipe error: {e}")
         return None, None, None
 
     if not results.multi_face_landmarks:

@@ -15,12 +15,6 @@ const Monitoring = () => {
     earValues: [],
     drowsyFrames: 0
   })
-  const [cameraReady, setCameraReady] = useState(false)
-  const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false)
-  const [showPermissionDialog, setShowPermissionDialog] = useState(false)
-  const [isPageLoading, setIsPageLoading] = useState(true)
-  
-  const sessionManager = new SessionManager()
   const timerIntervalRef = useRef(null)
   const sessionTimerRef = useRef(0)
   
@@ -39,16 +33,10 @@ const Monitoring = () => {
     startCalibration
   } = useEAR()
   
+  const sessionManager = new SessionManager()
   const settings = sessionManager.getSettings()
   
-  // Load baseline on mount
-  useEffect(() => {
-    const savedBaseline = sessionManager.getBaselineEAR()
-    if (savedBaseline !== baselineEAR) {
-      // Update baseline in useEAR hook if needed
-    }
-  }, [])
-  
+    
   // Handle session timer
   useEffect(() => {
     if (isMonitoring && sessionStartTime) {
@@ -90,30 +78,6 @@ const Monitoring = () => {
   const handleStartCalibration = async () => {
     console.log('🎯 Starting calibration...')
     await startCalibration()
-  }
-  
-  const handlePermissionGranted = async () => {
-    setCameraPermissionGranted(true)
-    setShowPermissionDialog(false)
-    
-    try {
-      // Pre-warm camera after permission is granted
-      await startCamera()
-      setCameraReady(true)
-      console.log('📷 Camera pre-warmed after permission granted')
-    } catch (error) {
-      console.error('Camera pre-warm failed after permission:', error)
-    }
-  }
-  
-  const handlePermissionDenied = (error) => {
-    setCameraPermissionGranted(false)
-    setShowPermissionDialog(false)
-    
-    // Navigate back to home if permission is denied
-    setTimeout(() => {
-      navigate('/')
-    }, 2000)
   }
   
   const startMonitoring = async () => {
@@ -163,6 +127,7 @@ const Monitoring = () => {
     }))
   }
   
+    
   
   return (
     <div className="space-y-6">
@@ -173,6 +138,7 @@ const Monitoring = () => {
           <p className="text-gray-400">Real-time drowsiness detection</p>
         </div>
         
+        {/* Session Timer */}
         {isMonitoring && (
           <div className="glass-card px-6 py-3">
             <div className="text-2xl font-mono text-neon-green">

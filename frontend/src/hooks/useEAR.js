@@ -70,10 +70,12 @@ export const useEAR = () => {
         if (frameData && frameData.frame) {
           const frameUrl = `data:image/jpeg;base64,${frameData.frame}`
           setCameraFrame(frameUrl)
-        } else if (frameData && frameData.error) {
-          console.error('❌ Frame error:', frameData.error)
         }
-      }, 50) // ~20 FPS for frames (balanced performance)
+        // Skip error logging for performance
+        // else if (frameData && frameData.error) {
+        //   console.error('❌ Frame error:', frameData.error)
+        // }
+      }, 66) // ~15 FPS for frames (stable performance)
     }
   }, [apiCall])
   
@@ -104,6 +106,14 @@ export const useEAR = () => {
       setDrowsyFrames(0)
     }
   }, [apiCall])
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Ensure camera is stopped when hook unmounts
+      stopCamera()
+    }
+  }, [stopCamera])
   
   // Start calibration
   const startCalibration = useCallback(async () => {

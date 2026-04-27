@@ -73,6 +73,19 @@ class SessionManager {
     }
   }
   
+  // Delete a specific session
+  deleteSession(sessionDate) {
+    try {
+      const sessions = this.getSessions()
+      const filteredSessions = sessions.filter(session => session.date !== sessionDate)
+      localStorage.setItem(this.storageKey, JSON.stringify(filteredSessions))
+      return true
+    } catch (error) {
+      console.error('Error deleting session:', error)
+      return false
+    }
+  }
+  
   // Clear all sessions
   clearSessions() {
     try {
