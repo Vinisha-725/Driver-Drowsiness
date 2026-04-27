@@ -139,7 +139,7 @@ const Profile = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-white">Baseline EAR</h3>
-            <div className="text-2xl font-bold text-neon-purple">
+            <div className="text-2xl font-bold text-neon-green">
               {baselineEAR.toFixed(3)}
             </div>
           </div>
@@ -193,28 +193,28 @@ const Profile = () => {
           <h3 className="text-lg font-bold text-white mb-6">Your Statistics</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="glass-card p-4 text-center">
-              <div className="text-2xl font-bold text-neon-purple mb-1">
+              <div className="text-2xl font-bold text-neon-green mb-1">
                 {statistics.totalSessions}
               </div>
               <p className="text-sm text-gray-400">Total Sessions</p>
             </div>
             
             <div className="glass-card p-4 text-center">
-              <div className="text-2xl font-bold text-neon-purple mb-1">
+              <div className="text-2xl font-bold text-neon-green mb-1">
                 {formatDuration(statistics.averageDuration)}
               </div>
               <p className="text-sm text-gray-400">Avg Duration</p>
             </div>
             
             <div className="glass-card p-4 text-center">
-              <div className="text-2xl font-bold text-neon-purple mb-1">
+              <div className="text-2xl font-bold text-neon-green mb-1">
                 {statistics.totalAlerts}
               </div>
               <p className="text-sm text-gray-400">Total Alerts</p>
             </div>
             
             <div className="glass-card p-4 text-center">
-              <div className="text-2xl font-bold text-neon-purple mb-1">
+              <div className="text-2xl font-bold text-neon-green mb-1">
                 {statistics.averageAlerts}
               </div>
               <p className="text-sm text-gray-400">Avg Alerts</p>

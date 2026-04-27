@@ -140,8 +140,8 @@ const Monitoring = () => {
         
         {/* Session Timer */}
         {isMonitoring && (
-          <div className="glass-card px-6 py-3 border-neon-purple/50 shadow-purple-500/30">
-            <div className="text-2xl font-mono text-neon-purple animate-pulse-glow">
+          <div className="glass-card px-6 py-3">
+            <div className="text-2xl font-mono text-neon-green">
               {formatTime(sessionTimerRef.current)}
             </div>
           </div>
@@ -163,14 +163,14 @@ const Monitoring = () => {
             <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full ${isMonitoring ? 'bg-neon-purple animate-pulse-glow' : 'bg-gray-500'}`} />
+                  <div className={`w-3 h-3 rounded-full ${isMonitoring ? 'bg-neon-green animate-pulse' : 'bg-gray-500'}`} />
                   <span className="text-white">
                     {isMonitoring ? 'Monitoring Active' : 'Camera Ready'}
                   </span>
                 </div>
                 
                 {isDetecting && (
-                  <div className="text-sm text-neon-purple animate-float">
+                  <div className="text-sm text-neon-green">
                     Face Detected
                   </div>
                 )}

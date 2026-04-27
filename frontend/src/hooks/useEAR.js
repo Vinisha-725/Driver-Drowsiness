@@ -19,15 +19,13 @@ export const useEAR = () => {
   // API call helper
   const apiCall = useCallback(async (endpoint, options = {}) => {
     try {
-      const url = `${API_BASE_URL}${endpoint}`
-      console.log(`🔍 API Call: ${url}`)
-      
-      const response = await fetch(url, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: options.method || 'GET',
         headers: {
           'Content-Type': 'application/json',
           ...options.headers
         },
-        ...options
+        body: options.body ? JSON.stringify(options.body) : undefined
       })
       
       if (!response.ok) {
@@ -35,7 +33,7 @@ export const useEAR = () => {
       }
       
       const data = await response.json()
-      console.log(`✅ API Response:`, data)
+      console.log(`🔍 API Response ${endpoint}:`, data)
       return data
     } catch (error) {
       console.error(`❌ API call error for ${endpoint}:`, error)
@@ -69,7 +67,7 @@ export const useEAR = () => {
       frameIntervalRef.current = setInterval(async () => {
         const frameData = await apiCall('/get_frame')
         if (frameData && frameData.frame) {
-          const frameUrl = `data:image/jpeg;base64,${frameData.frame}?t=${Date.now()}`
+          const frameUrl = `data:image/jpeg;base64,${frameData.frame}`
           setCameraFrame(frameUrl)
           console.log('📸 Frame received, size:', frameData.frame.length)
         } else if (frameData && frameData.error) {
@@ -77,7 +75,7 @@ export const useEAR = () => {
         }
       }, 66) // ~15 FPS for frames (stable performance)
     }
-  }, [apiCall])
+  }, [apiCall, setEarValue, setFps, setAlertTriggered, setDrowsyFrames, setIsDetecting, setCameraFrame])
   
   // Stop camera
   const stopCamera = useCallback(async () => {
@@ -106,14 +104,6 @@ export const useEAR = () => {
       setDrowsyFrames(0)
     }
   }, [apiCall])
-  
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // Ensure camera is stopped when hook unmounts
-      stopCamera()
-    }
-  }, [stopCamera])
   
   // Start calibration
   const startCalibration = useCallback(async () => {

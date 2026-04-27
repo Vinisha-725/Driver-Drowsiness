@@ -4,45 +4,33 @@
 
 @layer base {
   body {
-    @apply bg-dark-bg text-white min-h-screen font-sans;
+    @apply bg-dark-bg text-white min-h-screen;
   }
   
   * {
     @apply border-dark-border;
   }
-  
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Orbitron', system-ui, sans-serif;
-  }
-  
-  code, pre, .font-mono-text {
-    @apply font-mono;
-  }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-dark-card/60 backdrop-blur-xl border border-purple-500/20 rounded-2xl shadow-2xl transition-all duration-300 hover:border-purple-500/40;
+    @apply bg-dark-card/80 backdrop-blur-md border border-dark-border rounded-2xl shadow-2xl;
   }
   
   .neon-border {
     @apply border-2 rounded-2xl;
   }
   
-  .neon-purple {
-    @apply border-purple-400 shadow-lg shadow-purple-400/50;
-  }
-  
   .neon-green {
-    @apply border-purple-400 shadow-lg shadow-purple-400/50;
+    @apply border-neon-green shadow-lg shadow-neon-green/50;
   }
   
   .neon-yellow {
-    @apply border-yellow-400 shadow-lg shadow-yellow-400/50;
+    @apply border-neon-yellow shadow-lg shadow-neon-yellow/50;
   }
   
   .neon-red {
-    @apply border-red-400 shadow-lg shadow-red-400/50;
+    @apply border-neon-red shadow-lg shadow-neon-red/50;
   }
   
   .status-indicator {
@@ -50,14 +38,14 @@
   }
   
   .btn-primary {
-    @apply bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold py-3 px-6 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-300 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transform hover:scale-105;
+    @apply bg-neon-green text-dark-bg font-bold py-3 px-6 rounded-xl hover:bg-neon-green/90 transition-all duration-300 shadow-lg shadow-neon-green/30;
   }
   
   .btn-secondary {
-    @apply bg-dark-card/80 text-purple-300 font-bold py-3 px-6 rounded-xl hover:bg-purple-500/20 transition-all duration-300 border border-purple-500/30 hover:border-purple-500/50 transform hover:scale-105;
+    @apply bg-dark-card text-white font-bold py-3 px-6 rounded-xl hover:bg-dark-card/80 transition-all duration-300 border border-dark-border;
   }
   
   .btn-danger {
-    @apply bg-gradient-to-r from-red-500 to-red-600 text-white font-bold py-3 px-6 rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg shadow-red-500/30 hover:shadow-red-500/50 transform hover:scale-105;
+    @apply bg-neon-red text-white font-bold py-3 px-6 rounded-xl hover:bg-neon-red/90 transition-all duration-300 shadow-lg shadow-neon-red/30;
   }
 }

@@ -10,7 +10,6 @@ const CameraFeed = ({ isDetecting, fps, cameraFrame }) => {
             className="absolute inset-0 w-full h-full object-cover"
             onLoad={() => console.log('✅ Camera frame loaded successfully')}
             onError={(e) => console.error('❌ Camera frame failed to load:', e)}
-            key={Date.now()} // Force re-render on each frame
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -32,7 +31,7 @@ const CameraFeed = ({ isDetecting, fps, cameraFrame }) => {
         <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
           <div className="glass-card px-3 py-2">
             <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${isDetecting ? 'bg-neon-purple animate-pulse-glow' : 'bg-gray-500'}`} />
+              <div className={`w-2 h-2 rounded-full ${isDetecting ? 'bg-neon-green animate-pulse' : 'bg-gray-500'}`} />
               <span className="text-sm text-white">
                 {isDetecting ? 'Backend Processing' : 'Backend Idle'}
               </span>
@@ -48,9 +47,9 @@ const CameraFeed = ({ isDetecting, fps, cameraFrame }) => {
         
         {/* Center Crosshair */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-16 h-16 border-2 border-neon-purple/50 rounded-full animate-pulse-glow">
-            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-neon-purple/50 -translate-y-1/2" />
-            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-neon-purple/50 -translate-x-1/2" />
+          <div className="w-16 h-16 border-2 border-neon-green/30 rounded-full">
+            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-neon-green/30 -translate-y-1/2" />
+            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-neon-green/30 -translate-x-1/2" />
           </div>
         </div>
       </div>

@@ -61,14 +61,22 @@ def camera_thread():
     
     print("🎥 Camera thread started (optimized)")
     
+    frame_count = 0
     while detection_active:
         try:
             ret, frame = camera.read()
             if not ret:
+                print("❌ Failed to read frame from camera")
                 continue
             
             # Frame is already resized by camera settings, just flip
             frame = cv2.flip(frame, 1)
+            frame_count += 1
+            
+            # Log every 30 frames to see if camera is working
+            if frame_count % 30 == 0:
+                print(f"📹 Processed {frame_count} frames, detection_active: {detection_active}")
+                
         except Exception as e:
             print(f"Camera read error: {e}")
             continue
@@ -83,10 +91,6 @@ def camera_thread():
         # Get EAR from vision module
         ear, left_eye, right_eye = compute_ear_from_frame(frame)
         
-        # Debug: Print frame update status
-        if ear is not None:
-            print(f"🔄 Frame updated: EAR={ear:.3f}, Shape={frame.shape}")
-        
         if ear is not None:
             # Smooth EAR with history (limit history size)
             ear_history.append(ear)
@@ -95,6 +99,7 @@ def camera_thread():
             
             smooth_ear = sum(ear_history) / len(ear_history)
             current_ear = smooth_ear
+            print(f"📊 EAR computed: {ear:.3f} -> {smooth_ear:.3f}")
             
             # Drowsiness detection logic
             if smooth_ear < EAR_THRESHOLD:
@@ -111,15 +116,12 @@ def camera_thread():
                         print("🚨 CONTINUOUS DROWSINESS ALERT! Driver appears to be asleep!")
                     else:
                         alert_triggered = True  # Keep alert state active between beeps
-                else:
-                    alert_triggered = False
             else:
-                # Reset counter when eyes are open
-                if drowsy_frame_count > 0:
-                    drowsy_frame_count = max(0, drowsy_frame_count - 2)
+                drowsy_frame_count = max(0, drowsy_frame_count - 1)
                 alert_triggered = False
         else:
-            current_ear = 0.25
+            print("⚠️ No face detected for EAR computation")
+            current_ear = 0.25  # Default value when no face
             drowsy_frame_count = 0
             alert_triggered = False
         
@@ -127,7 +129,9 @@ def camera_thread():
         curr_time = time.time()
         if prev_time != 0:
             fps = 1 / (curr_time - prev_time)
-    # Optimized delay for performance
+        prev_time = curr_time
+        
+        # Optimized delay for performance
         time.sleep(0.03)  # ~33 FPS processing capability
 
 @app.route('/api/start_camera', methods=['POST'])
@@ -136,11 +140,12 @@ def start_camera():
     global detection_active, detection_thread
     
     if detection_active:
+        print("📷 Camera already active")
         return jsonify({'status': 'already_active'})
     
+    print("🚀 Starting camera and detection thread...")
     detection_active = True
     detection_thread = threading.Thread(target=camera_thread)
-    detection_thread.daemon = True
     detection_thread.start()
     
     return jsonify({'status': 'started'})
@@ -172,14 +177,16 @@ def stop_camera():
 @app.route('/api/get_ear', methods=['GET'])
 def get_ear():
     """Get current EAR value and detection status"""
-    return jsonify({
+    response_data = {
         'ear': current_ear,
         'threshold': EAR_THRESHOLD,
         'drowsy_frames': drowsy_frame_count,
         'alert_triggered': alert_triggered,
         'fps': fps,
         'is_detecting': detection_active
-    })
+    }
+    print(f"📊 EAR API Response: {response_data}")
+    return jsonify(response_data)
 
 @app.route('/api/get_frame', methods=['GET'])
 def get_frame():
