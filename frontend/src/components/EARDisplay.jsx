@@ -2,7 +2,7 @@ const EARDisplay = ({ earValue, threshold, baselineEAR }) => {
   const getEARColor = () => {
     if (earValue < threshold * 0.6) return 'text-neon-red'
     if (earValue < threshold) return 'text-neon-yellow'
-    return 'text-neon-green'
+    return 'text-neon-purple'
   }
   
   const getEARStatus = () => {
@@ -14,7 +14,7 @@ const EARDisplay = ({ earValue, threshold, baselineEAR }) => {
   const getProgressColor = () => {
     if (earValue < threshold * 0.6) return 'bg-neon-red'
     if (earValue < threshold) return 'bg-neon-yellow'
-    return 'bg-neon-green'
+    return 'bg-neon-purple'
   }
   
   const progressPercentage = Math.min((earValue / 0.4) * 100, 100)

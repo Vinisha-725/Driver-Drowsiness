@@ -96,7 +96,7 @@ const Home = () => {
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-neon-green mb-4">
+        <h1 className="text-4xl font-bold text-neon-purple mb-4">
           Driver Safety System
         </h1>
         <p className="text-gray-400 text-lg">
@@ -109,10 +109,10 @@ const Home = () => {
         <div className="mb-6">
           <div className={`inline-flex items-center space-x-3 px-6 py-3 rounded-full ${
             isMonitoring 
-              ? 'bg-neon-green/20 text-neon-green border border-neon-green' 
+              ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple' 
               : 'bg-gray-800/50 text-gray-400 border border-gray-700'
           }`}>
-            <div className={`w-3 h-3 rounded-full ${isMonitoring ? 'bg-neon-green animate-pulse' : 'bg-gray-500'}`} />
+            <div className={`w-3 h-3 rounded-full ${isMonitoring ? 'bg-neon-purple animate-pulse-glow' : 'bg-gray-500'}`} />
             <span className="font-semibold">
               {isMonitoring ? 'Monitoring Active' : 'System Idle'}
             </span>
@@ -121,7 +121,7 @@ const Home = () => {
         
         {isMonitoring && (
           <div className="mb-6">
-            <div className="text-3xl font-mono text-neon-green mb-2">
+            <div className="text-3xl font-mono text-neon-purple mb-2">
               {formatTime(sessionTimer)}
             </div>
             <p className="text-sm text-gray-400">Session Duration</p>
@@ -154,28 +154,28 @@ const Home = () => {
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="glass-card p-6 text-center">
-          <div className="text-3xl font-bold text-neon-green mb-2">
+          <div className="text-3xl font-bold text-neon-purple mb-2">
             {stats.todaySessions}
           </div>
           <p className="text-gray-400">Sessions Today</p>
         </div>
         
         <div className="glass-card p-6 text-center">
-          <div className="text-3xl font-bold text-neon-green mb-2">
+          <div className="text-3xl font-bold text-neon-purple mb-2">
             {formatDuration(stats.todayDuration)}
           </div>
           <p className="text-gray-400">Today's Duration</p>
         </div>
         
         <div className="glass-card p-6 text-center">
-          <div className="text-3xl font-bold text-neon-green mb-2">
+          <div className="text-3xl font-bold text-neon-purple mb-2">
             {stats.totalSessions}
           </div>
           <p className="text-gray-400">Total Sessions</p>
         </div>
         
         <div className="glass-card p-6 text-center">
-          <div className="text-3xl font-bold text-neon-green mb-2">
+          <div className="text-3xl font-bold text-neon-purple mb-2">
             {stats.totalAlerts}
           </div>
           <p className="text-gray-400">Total Alerts</p>

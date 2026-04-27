@@ -254,7 +254,7 @@ const History = () => {
 
         <div className="glass-card p-6 text-center">
 
-          <div className="text-3xl font-bold text-neon-green mb-2">
+          <div className="text-3xl font-bold text-neon-purple mb-2">
 
             {statistics.totalSessions}
 
@@ -268,7 +268,7 @@ const History = () => {
 
         <div className="glass-card p-6 text-center">
 
-          <div className="text-3xl font-bold text-neon-green mb-2">
+          <div className="text-3xl font-bold text-neon-purple mb-2">
 
             {formatDuration(statistics.totalDuration)}
 
@@ -282,7 +282,7 @@ const History = () => {
 
         <div className="glass-card p-6 text-center">
 
-          <div className="text-3xl font-bold text-neon-green mb-2">
+          <div className="text-3xl font-bold text-neon-purple mb-2">
 
             {statistics.totalAlerts}
 
@@ -296,7 +296,7 @@ const History = () => {
 
         <div className="glass-card p-6 text-center">
 
-          <div className="text-3xl font-bold text-neon-green mb-2">
+          <div className="text-3xl font-bold text-neon-purple mb-2">
 
             {formatDuration(statistics.averageDuration)}
 
@@ -336,7 +336,7 @@ const History = () => {
 
                     filter === filterOption
 
-                      ? 'bg-neon-green text-dark-bg'
+                      ? 'bg-neon-purple text-dark-bg'
 
                       : 'bg-dark-card text-gray-400 hover:text-white'
 
@@ -376,7 +376,7 @@ const History = () => {
 
                     sortBy === sortOption
 
-                      ? 'bg-neon-green text-dark-bg'
+                      ? 'bg-neon-purple text-dark-bg'
 
                       : 'bg-dark-card text-gray-400 hover:text-white'
 
@@ -458,7 +458,7 @@ const History = () => {
 
                 key={session.date}
 
-                className="bg-dark-card/50 border border-dark-border rounded-lg p-4 hover:border-neon-green/50 transition-all cursor-pointer"
+                className="bg-dark-card/50 border border-dark-border rounded-lg p-4 hover:border-neon-purple/50 transition-all cursor-pointer"
 
                 onClick={() => viewSessionDetails(session)}
 
@@ -488,7 +488,7 @@ const History = () => {
 
                         <span className="text-gray-400">Alerts:</span>
 
-                        <span className={`font-semibold ${session.alerts > 0 ? 'text-neon-red' : 'text-neon-green'}`}>
+                        <span className={`font-semibold ${session.alerts > 0 ? 'text-neon-red' : 'text-neon-purple'}`}>
 
                           {session.alerts}
 
@@ -526,7 +526,7 @@ const History = () => {
 
                     {session.alerts === 0 ? (
 
-                      <div className="px-3 py-1 bg-neon-green/20 text-neon-green rounded-full text-sm font-semibold">
+                      <div className="px-3 py-1 bg-neon-purple/20 text-neon-purple rounded-full text-sm font-semibold">
 
                         Clean
 
@@ -690,7 +690,7 @@ const History = () => {
 
                       <span className="text-gray-400">Total Alerts:</span>
 
-                      <span className={`font-semibold ${selectedSession.alerts > 0 ? 'text-neon-red' : 'text-neon-green'}`}>
+                      <span className={`font-semibold ${selectedSession.alerts > 0 ? 'text-neon-red' : 'text-neon-purple'}`}>
 
                         {selectedSession.alerts}
 
@@ -764,11 +764,11 @@ const History = () => {
 
                     <>
 
-                      <div className="w-4 h-4 bg-neon-green rounded-full animate-pulse"></div>
+                      <div className="w-4 h-4 bg-neon-purple rounded-full animate-pulse-glow"></div>
 
                       <div>
 
-                        <div className="text-neon-green font-semibold">Excellent Performance</div>
+                        <div className="text-neon-purple font-semibold">Excellent Performance</div>
 
                         <div className="text-gray-400 text-sm">No drowsiness alerts detected</div>
 

@@ -163,7 +163,7 @@ const AlertSystem = ({
       case 'alert':
         return { color: 'text-neon-red', bgColor: 'bg-neon-red/20', borderColor: 'border-neon-red', text: '🚨 DROWSY! 🚨' }
       default:
-        return { color: 'text-neon-green', bgColor: 'bg-neon-green/20', borderColor: 'border-neon-green', text: 'MONITORING' }
+        return { color: 'text-neon-purple', bgColor: 'bg-neon-purple/20', borderColor: 'border-neon-purple', text: 'MONITORING' }
     }
   }
   
