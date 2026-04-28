@@ -46,14 +46,16 @@ def compute_ear_from_frame(frame):
     try:
         # Use regular RGB image processing
         results = face_mesh.process(rgb)
-        print(f"🔍 MediaPipe results: {results is not None}")
+        # print(f"🔍 MediaPipe results: {results is not None}")  # Disabled for performance
         if results and results.multi_face_landmarks:
-            print(f"👤 Faces detected: {len(results.multi_face_landmarks)}")
+            # print(f"👤 Faces detected: {len(results.multi_face_landmarks)}")  # Disabled for performance
+            pass
     except Exception as e:
         print(f"❌ MediaPipe error: {e}")
         return None, None, None
 
     if not results.multi_face_landmarks:
+        # print("⚠️ No face landmarks detected")  # Disabled for performance
         return None, None, None
 
     face_landmarks = results.multi_face_landmarks[0]

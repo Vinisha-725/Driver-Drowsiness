@@ -73,8 +73,8 @@ def camera_thread():
             frame = cv2.flip(frame, 1)
             frame_count += 1
             
-            # Log every 30 frames to see if camera is working
-            if frame_count % 30 == 0:
+            # Log every 60 frames to reduce overhead
+            if frame_count % 60 == 0:
                 print(f"📹 Processed {frame_count} frames, detection_active: {detection_active}")
                 
         except Exception as e:
@@ -99,7 +99,7 @@ def camera_thread():
             
             smooth_ear = sum(ear_history) / len(ear_history)
             current_ear = smooth_ear
-            print(f"📊 EAR computed: {ear:.3f} -> {smooth_ear:.3f}")
+            # print(f"📊 EAR computed: {ear:.3f} -> {smooth_ear:.3f}")  # Disabled for performance
             
             # Drowsiness detection logic
             if smooth_ear < EAR_THRESHOLD:
@@ -132,7 +132,7 @@ def camera_thread():
         prev_time = curr_time
         
         # Optimized delay for performance
-        time.sleep(0.03)  # ~33 FPS processing capability
+        time.sleep(0.1)  # ~10 FPS processing capability (major lag reduction)
 
 @app.route('/api/start_camera', methods=['POST'])
 def start_camera():
@@ -185,7 +185,7 @@ def get_ear():
         'fps': fps,
         'is_detecting': detection_active
     }
-    print(f"📊 EAR API Response: {response_data}")
+    # print(f"📊 EAR API Response: {response_data}")  # Disabled for performance
     return jsonify(response_data)
 
 @app.route('/api/get_frame', methods=['GET'])
@@ -226,7 +226,7 @@ def get_frame():
                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 165, 0), 2)
     
     # Encode frame as JPEG with optimized quality for speed
-    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 50]  # Further reduced for better performance
+    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 30]  # Very low quality for maximum speed
     _, buffer = cv2.imencode('.jpg', frame, encode_param)
     frame_base64 = base64.b64encode(buffer).decode('utf-8')
     
